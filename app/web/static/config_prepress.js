@@ -9,7 +9,7 @@ const BLANK_PARAMS = {
     width_mm: 100, height_mm: 100, bleed_mm: 3, dpi: 150, bitdepth: 8, color_profile: "srgb",
     background: { enabled: true, fill_color: [255, 255, 255] },
     zones: [{ name: "FaceA", type: "image", x_mm: 3, y_mm: 3, width_mm: 94, height_mm: 94, fit_mode: "stretch" }],
-    marks: { crop_marks: { enabled: true, color: "black", width_mm: 0.2, length_mm: 5, offset_mm: 3, dashed: false, dash_length_mm: 2, gap_length_mm: 2 },
+    marks: { crop_marks: { enabled: true, color: "black", width_mm: 0.2, dashed: false, dash_length_mm: 2, gap_length_mm: 2 },
              zipper_marks: { enabled: false, side: "left", span_mm: null, pitch_mm: null, line_width_mm: 0.5, alignment: "center", offset_mm: 5, length_mm: 10, color: "black" },
              text_marks: { enabled: false, color: "black", font_size_pt: 12, items: [] } },
     output: { formats: ["psd"], save_name: "" },

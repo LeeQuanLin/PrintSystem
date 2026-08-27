@@ -183,6 +183,7 @@ def save_size_config(type_id: str, size_id: str, data: dict) -> Path:
         raise ValueError(f"type/size 不一致: 路径 {type_id}/{size_id} vs 数据 {data.get('type')}/{data.get('size')}")
     # SizeEntry 模型字段是 {id, name, params}，文件存 {type, size, name, params}
     # 校验时把 size 映射为 id
+    _migrate_marks(data["params"])  # 兼容旧字段
     entry = {"id": data["size"], "name": data.get("name", data["size"]), "params": data["params"]}
     try:
         SizeEntry.model_validate(entry)
@@ -211,6 +212,7 @@ def create_size_config(type_id: str, size_id: str, name: str, params: dict) -> P
     Raises:
         ValueError: type_id/size_id 非 ASCII / size_id 已存在 / 校验失败
     """
+    _migrate_marks(params)  # 兼容旧字段
     idx = _scan_prepress()
     if type_id in idx and size_id in idx[type_id]:
         raise ValueError(f"尺码已存在: {type_id}/{size_id}")
