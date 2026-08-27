@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "double_bedsheet",
+      "name": "双幅床单拼版",
+      "canvas": {
+        "width_mm": 2600,
+        "height_mm": 9000,
+        "dpi": 150,
+        "bitdepth": 8
+      },
+      "gutters": {
+        "horizontal_mm": 10,
+        "vertical_mm": 10,
+        "margin_mm": 20
+      },
+      "marks": {
+        "crop_marks": true,
+        "crop_mark_length_mm": 5,
+        "crop_mark_offset_mm": 3,
+        "registration_marks": false
+      },
+      "output": {
+        "format": "tif",
+        "compression": "deflate",
+        "color_profile": "srgb"
+      }
+    },
+    {
+      "id": "quilt_ab_combo",
+      "name": "被罩AB面拼版",
+      "canvas": {
+        "width_mm": 2100,
+        "height_mm": 4800,
+        "dpi": 150
+      },
+      "gutters": {
+        "horizontal_mm": 5,
+        "vertical_mm": 5
+      },
+      "marks": {
+        "crop_marks": true
+      },
+      "output": {
+        "format": "tif",
+        "compression": "deflate"
+      }
+    }
+  ]
+}

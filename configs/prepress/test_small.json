@@ -1,0 +1,68 @@
+{
+  "type": "test",
+  "size": "small",
+  "name": "测试 100x100mm",
+  "params": {
+    "width_mm": 100,
+    "height_mm": 100,
+    "bleed_mm": 3,
+    "dpi": 150,
+    "bitdepth": 8,
+    "color_profile": "srgb",
+    "background": {
+      "enabled": true,
+      "fill_color": [
+        255,
+        255,
+        255
+      ]
+    },
+    "zones": [
+      {
+        "name": "FaceA",
+        "type": "image",
+        "x_mm": 3,
+        "y_mm": 3,
+        "width_mm": 94,
+        "height_mm": 94,
+        "fit_mode": "stretch",
+        "corner_crop": {
+          "style": "rounded",
+          "radius_mm": 5
+        }
+      }
+    ],
+    "marks": {
+      "crop_marks": {
+        "enabled": true,
+        "color": "black",
+        "width_mm": 0.2,
+        "length_mm": 5,
+        "offset_mm": 3
+      },
+      "zipper_marks": {
+        "enabled": true,
+        "side": "left",
+        "span_mm": 80,
+        "pitch_mm": 20,
+        "line_width_mm": 0.5,
+        "alignment": "distribute"
+      },
+      "text_marks": {
+        "enabled": true,
+        "items": [
+          {
+            "text": "demo",
+            "x_mm": 5,
+            "y_mm": 5
+          }
+        ]
+      }
+    },
+    "output": {
+      "formats": [
+        "psd"
+      ]
+    }
+  }
+}

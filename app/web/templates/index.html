@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}印前生成 · 印前文件服务器{% endblock %}
+
+{% block content %}
+<div class="workspace">
+    <!-- 作业设置 -->
+    <section class="card card-job" id="prepress">
+        <div class="card-head">
+            <h2>作业设置</h2>
+            <span class="card-tag">配置驱动</span>
+        </div>
+
+        <div class="form-row">
+            <label class="field">
+                <span class="field-label">类型</span>
+                <select id="type-select"><option value="">-- 选择 --</option></select>
+            </label>
+            <label class="field">
+                <span class="field-label">尺码</span>
+                <select id="size-select" disabled><option value="">-- 先选类型 --</option></select>
+            </label>
+        </div>
+
+        <div class="block-label">设计图</div>
+        <div id="zones-container" class="zones"></div>
+
+        <div id="vars-container" class="vars"></div>
+
+        <div class="actions">
+            <button id="generate-btn" class="btn btn-primary" disabled>生成印前文件</button>
+        </div>
+    </section>
+
+    <!-- 任务队列 -->
+    <aside class="card card-tasks" id="task-panel">
+        <div class="card-head">
+            <h2>任务队列</h2>
+            <span class="card-tag" id="task-summary">0 条</span>
+        </div>
+        <div id="task-list" class="task-list">
+            <div class="empty">提交生成后，任务进度将在此实时呈现。</div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/app.js"></script>{% endblock %}

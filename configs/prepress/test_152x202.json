@@ -1,0 +1,69 @@
+{
+  "type": "test",
+  "size": "152x202",
+  "name": "测试 152x202cm",
+  "params": {
+    "width_mm": 1500,
+    "height_mm": 2000,
+    "bleed_mm": 10,
+    "dpi": 150,
+    "bitdepth": 8,
+    "color_profile": "srgb",
+    "background": {
+      "enabled": true,
+      "fill_color": [255, 255, 255]
+    },
+    "zones": [
+      {
+        "name": "FaceA",
+        "type": "image",
+        "x_mm": 0,
+        "y_mm": 0,
+        "width_mm": 1520,
+        "height_mm": 2020,
+        "fit_mode": "cover",
+        "corner_crop": { "style": "square" }
+      }
+    ],
+    "marks": {
+      "crop_marks": {
+        "enabled": false
+      },
+      "zipper_marks": {
+        "enabled": true,
+        "side": "right",
+        "span_mm": 1500,
+        "pitch_mm": 1500,
+        "line_width_mm": 0.17,
+        "alignment": "center",
+        "offset_mm": 0,
+        "length_mm": 10,
+        "color": "black"
+      },
+      "border_marks": {
+        "enabled": true,
+        "color": "black",
+        "x_mm": 0,
+        "y_mm": 0,
+        "width_mm": 1520,
+        "height_mm": 2020,
+        "width_mm_line": 0.17,
+        "dash_length_mm": 2,
+        "gap_length_mm": 2
+      },
+      "text_marks": {
+        "enabled": true,
+        "color": "black",
+        "font_size_pt": 10,
+        "items": [
+          {
+            "text": "测试 %(name)s 被罩A面 %(size)s",
+            "x_mm": 2,
+            "y_mm": 2
+          }
+        ]
+      }
+    },
+    "output": { "formats": ["png"], "save_name": "%(name)s_%(size)s" }
+  }
+}

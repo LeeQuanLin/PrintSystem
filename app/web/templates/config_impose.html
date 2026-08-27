@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}排版配置 · 印前文件服务器{% endblock %}
+{% block page %}config-impose{% endblock %}
+{% block breadcrumb %}<span class="crumb">系统</span><span class="crumb-sep">/</span><span class="crumb">配置</span><span class="crumb-sep">/</span><span class="crumb-current">排版配置</span>{% endblock %}
+
+{% block content %}
+<section class="card cfg-readonly-card">
+    <div class="card-head">
+        <h2>排版配置</h2>
+        <span class="card-tag">只读</span>
+    </div>
+    <div class="cfg-ro-body" id="cfg-impose"><div class="empty">加载中…</div></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="/static/config_readonly.js" data-target="impose"></script>{% endblock %}

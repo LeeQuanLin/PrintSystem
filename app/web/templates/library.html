@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}文件库 · 印前文件服务器{% endblock %}
+{% block page %}library{% endblock %}
+{% block breadcrumb %}<span class="crumb">作业</span><span class="crumb-sep">/</span><span class="crumb-current">文件库</span>{% endblock %}
+
+{% block content %}
+<div class="lib-toolbar">
+    <div class="seg" id="source-seg" role="tablist" aria-label="来源">
+        <button class="seg-btn is-active" data-source="">全部</button>
+        <button class="seg-btn" data-source="upload">上传</button>
+        <button class="seg-btn" data-source="prepress">印前产物</button>
+    </div>
+    <input type="text" id="lib-search" class="lib-search" placeholder="按文件名搜索…">
+</div>
+
+<div class="lib-grid" id="lib-grid">
+    <div class="empty">加载中…</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/library.js"></script>{% endblock %}

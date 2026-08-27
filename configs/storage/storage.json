@@ -1,0 +1,14 @@
+{
+  "library": {
+    "path": "data/library",
+    "db_filename": "library.db"
+  },
+  "thumbnail": {
+    "format": "webp",
+    "max_size_px": 400,
+    "quality": 80
+  },
+  "tasks": {
+    "max_concurrency": 2
+  }
+}
