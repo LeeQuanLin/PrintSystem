@@ -73,15 +73,65 @@ def _draw_line(
         pos = seg_end + gap_px
 
 
+def _corner_outline_points(
+    x1: int, y1: int, x2: int, y2: int, corner_crop, dpi: int
+) -> list[tuple[int, int]]:
+    """
+    按 corner_crop 样式生成轮廓顶点（顺时针闭合，不含重复首尾）。
+
+    Args:
+        x1/y1/x2/y2: zone 像素范围闭区间
+        corner_crop: CornerCrop 对象或 None
+        dpi: 分辨率
+
+    Returns:
+        顶点列表；rounded 样式返回空列表（调用方改用 rounded_rectangle）
+    """
+    if corner_crop is None:
+        return [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+
+    style = corner_crop.style
+    if style == "rounded":
+        return []  # 圆角走 rounded_rectangle 分支
+
+    c = mm_to_px(corner_crop.chamfer_mm, dpi)
+    if c <= 0:
+        return [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+    c = min(c, (x2 - x1 + 1) // 2, (y2 - y1 + 1) // 2)
+
+    if style == "square":
+        # 方缺角：四角各切矩形缺口，12 顶点
+        return [
+            (x1 + c, y1), (x2 - c, y1), (x2 - c, y1 + c), (x2, y1 + c),
+            (x2, y2 - c), (x2 - c, y2 - c), (x2 - c, y2), (x1 + c, y2),
+            (x1 + c, y2 - c), (x1, y2 - c), (x1, y1 + c), (x1 + c, y1 + c),
+        ]
+    if style == "chamfer":
+        # 三角倒角：四角斜切，8 顶点
+        return [
+            (x1 + c, y1), (x2 - c, y1), (x2, y1 + c), (x2, y2 - c),
+            (x2 - c, y2), (x1 + c, y2), (x1, y2 - c), (x1, y1 + c),
+        ]
+    return [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+
+
 def make_crop_marks_layer(
-    canvas: CanvasPx, bbox: tuple[int, int, int, int], crop_marks, dpi: int
+    canvas: CanvasPx,
+    zone_rect: tuple[int, int, int, int],
+    corner_crop,
+    crop_marks,
+    dpi: int,
 ) -> Optional[Image.Image]:
     """
-    生成裁切线层：沿实际像素包围盒内侧描一圈矩形边（描边语义）。
+    生成裁切线层：沿主 zone 像素范围 + corner_crop 形状描边。
+
+    形状随主 zone 的 corner_crop：square 方缺角(12边) / chamfer 三角倒角(8边) /
+    rounded 圆角 / 无缺角则矩形。background 启用时也沿主 zone 范围描（不画整画布矩形）。
 
     Args:
         canvas: 画布像素几何
-        bbox: 非透明像素包围盒 (x1, y1, x2, y2)，由调用方合成图层后计算
+        zone_rect: 主 zone 像素范围闭区间 (x1, y1, x2, y2)
+        corner_crop: 主 zone 的 CornerCrop 对象（可能为 None）
         crop_marks: config.prepress.CropMarks 对象
         dpi: 分辨率
 
@@ -99,25 +149,24 @@ def make_crop_marks_layer(
     dash_px = mm_to_px(crop_marks.dash_length_mm, dpi)
     gap_px = mm_to_px(crop_marks.gap_length_mm, dpi)
 
-    # 内描边：线完全在包围盒内部。
-    # getbbox 返回 (left, upper, right, lower)，right/lower 为开区间（不含该像素），
-    # 最后一个非透明像素是 right-1 / lower-1。
-    # ImageDraw.line 的 width>1 时线向右下扩展，故：
-    #   上/左边线在 left+inset / upper+inset（向内偏移半个线宽）
-    #   下/右边线在 (right-1) - (line_w-1) + inset / (lower-1) - (line_w-1) + inset
-    #   即右下边坐标 = bbox_right - line_w + inset，确保整条线（含扩展）不超包围盒
-    inset = line_w // 2
-    bx1, by1, bx2, by2 = bbox
-    x1 = bx1 + inset
-    y1 = by1 + inset
-    x2 = bx2 - line_w + inset
-    y2 = by2 - line_w + inset
+    x1, y1, x2, y2 = zone_rect
 
-    # 四条边（实线或虚线），内描边不超出包围盒
-    _draw_line(draw, (x1, y1), (x2, y1), color, line_w, dashed, dash_px, gap_px)  # 上
-    _draw_line(draw, (x1, y2), (x2, y2), color, line_w, dashed, dash_px, gap_px)  # 下
-    _draw_line(draw, (x1, y1), (x1, y2), color, line_w, dashed, dash_px, gap_px)  # 左
-    _draw_line(draw, (x2, y1), (x2, y2), color, line_w, dashed, dash_px, gap_px)  # 右
+    # rounded：用 rounded_rectangle 描边（不支持虚线逐边，虚线时退化为实线）
+    if corner_crop is not None and corner_crop.style == "rounded":
+        radius = mm_to_px(corner_crop.radius_mm, dpi)
+        radius = min(radius, (x2 - x1 + 1) // 2, (y2 - y1 + 1) // 2)
+        if radius > 0:
+            draw.rounded_rectangle(
+                [x1, y1, x2, y2], radius=radius, outline=color, width=line_w,
+            )
+            return layer
+
+    # 多边形轮廓：逐边画线（支持虚线）
+    pts = _corner_outline_points(x1, y1, x2, y2, corner_crop, dpi)
+    for i in range(len(pts)):
+        p1 = pts[i]
+        p2 = pts[(i + 1) % len(pts)]
+        _draw_line(draw, p1, p2, color, line_w, dashed, dash_px, gap_px)
 
     return layer
 

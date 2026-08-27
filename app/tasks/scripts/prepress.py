@@ -82,33 +82,17 @@ def _resolve_solid_color(solid_layer, image_path: Path) -> tuple[int, int, int]:
     raise ValueError("纯色层既无 color 也无 auto_color")
 
 
-def _compute_alpha_bbox(canvas, background, solid_layers, zone_layers) -> tuple[int, int, int, int]:
+def _pick_main_zone(params: Params) -> Zone | None:
     """
-    合成 background+solid+zones 后计算非透明像素包围盒。
+    选主 zone 用于裁剪线描边。
 
-    裁剪线沿此包围盒内描边。合成仅用于算 bbox，不保留全图（大图时省内存）。
-    background 若启用则整画布有像素，bbox 即整个画布；否则按 solid+zones 实际非透明区算。
-
-    Returns:
-        (x1, y1, x2, y2) 像素包围盒（PIL getbbox 语义，x2/y2 为开区间右下角）
+    优先面积最大的 image zone（主图区），退化到第一个 zone。无 zone 返回 None。
     """
-    w, h = canvas.width_px, canvas.height_px
-    # background 启用即整画布非透明
-    if background is not None and background.enabled:
-        return (0, 0, w, h)
-    # 否则合成 solid + zones 的 alpha 通道求 bbox
-    composite = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    for _name, layer in solid_layers + zone_layers:
-        if layer.mode != "RGBA":
-            layer = layer.convert("RGBA")
-        composite.alpha_composite(layer)
-    bbox = composite.getbbox()
-    if bbox is None:
-        # 全透明：兜底用成品矩形
-        bx = canvas.bleed_px
-        by = canvas.bleed_px
-        return (bx, by, bx + w - 2 * bx, by + h - 2 * by)
-    return bbox
+    image_zones = [z for z in params.zones if z.type == "image"]
+    pool = image_zones or list(params.zones)
+    if not pool:
+        return None
+    return max(pool, key=lambda z: z.width_mm * z.height_mm)
 
 
 def _fill_template(template: str, vars_dict: dict[str, str]) -> str:
@@ -264,14 +248,18 @@ def run(
         # 标记层
         mark_layers: list[tuple[str, Image.Image]] = []
 
-        # 裁剪线：沿实际像素包围盒内描边，需先合成 background+solid+zones 算 alpha bbox
+        # 裁剪线：沿主 zone 像素范围 + corner_crop 形状描边（跟缺角）
         cm = params.marks.crop_marks
         if cm.enabled:
-            bbox = _compute_alpha_bbox(canvas, params.background, solid_layers, zone_layers)
-            mark_layers.append((
-                "CropMarks",
-                make_crop_marks_layer(canvas, bbox, cm, params.dpi),
-            ))
+            main_zone = _pick_main_zone(params)
+            if main_zone is not None:
+                zp = zone_to_px(main_zone, params.dpi)
+                zone_rect = (zp.x_px, zp.y_px,
+                             zp.x_px + zp.width_px - 1, zp.y_px + zp.height_px - 1)
+                mark_layers.append((
+                    "CropMarks",
+                    make_crop_marks_layer(canvas, zone_rect, main_zone.corner_crop, cm, params.dpi),
+                ))
         zm = params.marks.zipper_marks
         if zm.enabled:
             mark_layers.append((

@@ -6,7 +6,6 @@ const state = {
     params: null,
     placeholders: [],     // 占位符变量名列表
     imagePaths: {},       // zone_name -> uploaded image_path
-    tasks: {},            // task_id -> task dict
 };
 
 // ---- DOM ----
@@ -401,25 +400,21 @@ async function generate() {
 }
 
 // ---- WebSocket 进度 ----
+// WS 连接与任务表由全站共享的 task_badge.js 维护（window.taskStore），
+// 本页订阅其变化以渲染任务列表。
 
-function connectWS() {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${proto}://${location.host}/ws`);
-    ws.onmessage = e => {
-        const msg = JSON.parse(e.data);
-        state.tasks[msg.task_id] = msg;
-        renderTaskList();
-    };
-    ws.onclose = () => setTimeout(connectWS, 2000);  // 断线重连
-    ws.onerror = () => ws.close();
-}
+// 任务状态排序权重：排队中 → 处理中 → 完成/失败
+const STATUS_ORDER = { pending: 0, running: 1, succeeded: 2, failed: 2 };
 
-function renderTaskList() {
-    const tasks = Object.values(state.tasks).sort((a, b) => (b.task_id || "").localeCompare(a.task_id || ""));
+function renderTaskList(allTasks) {
+    const tasks = allTasks.slice().sort((a, b) => {
+        const d = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+        if (d !== 0) return d;
+        // 同状态：按 task_id 倒序（ULID 时间递增，新的在上）
+        return (b.task_id || "").localeCompare(a.task_id || "");
+    });
     const summary = document.getElementById("task-summary");
-    const countEl = document.getElementById("task-count");
     if (summary) summary.textContent = `${tasks.length} 条`;
-    if (countEl) countEl.textContent = tasks.length;
 
     if (tasks.length === 0) {
         taskList.innerHTML = `<div class="empty">提交生成后，任务进度将在此实时呈现。</div>`;
@@ -466,5 +461,4 @@ generateBtn.addEventListener("click", generate);
 
 // ---- 初始化 ----
 loadTypes();
-connectWS();
-renderTaskList();
+taskStore.subscribe(renderTaskList);

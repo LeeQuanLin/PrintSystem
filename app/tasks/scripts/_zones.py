@@ -85,10 +85,26 @@ def make_corner_mask(
     """
     mask = Image.new("L", (w_px, h_px), 255)
 
-    if corner_crop is None or corner_crop.style == "square":
+    if corner_crop is None:
         return mask
 
     draw = ImageDraw.Draw(mask)
+
+    if corner_crop.style == "square":
+        # 矩形缺角：四角各切一个正方形透明区（边长 chamfer_mm），形如纸盒展开图缺角
+        c = mm_to_px(corner_crop.chamfer_mm, dpi)
+        if c <= 0:
+            return mask
+        c = min(c, w_px // 2, h_px // 2)
+        boxes = [
+            (0, 0, c, c),                       # 左上
+            (w_px - c, 0, w_px, c),             # 右上
+            (0, h_px - c, c, h_px),             # 左下
+            (w_px - c, h_px - c, w_px, h_px),   # 右下
+        ]
+        for box in boxes:
+            draw.rectangle(box, fill=0)
+        return mask
 
     if corner_crop.style == "rounded":
         radius = mm_to_px(corner_crop.radius_mm, dpi)
@@ -251,7 +267,7 @@ def make_color_layer(
     r, g, b = color
     layer = Image.new("RGBA", (zp.width_px, zp.height_px), (r, g, b, 255))
     # 纯色区也应用四角裁剪（与图片区一致）
-    if zone.corner_crop is not None and zone.corner_crop.style != "square":
+    if zone.corner_crop is not None:
         mask = make_corner_mask(zp.width_px, zp.height_px, zone.corner_crop, dpi)
         layer = apply_alpha_mask(layer, mask)
     return layer

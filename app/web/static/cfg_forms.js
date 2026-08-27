@@ -187,15 +187,24 @@ function renderZone(p, idx) {
             ${fSelect("取色方法", z.auto_color?.method || "dominant", "ac_method",
                 [{ v: "dominant", t: "dominant 主色" }, { v: "average", t: "average 均色" }])}</div>`;
     }
-    // 四角裁剪
+    // 四角裁剪：square=方形缺角 / rounded=圆角 / chamfer=三角倒角
+    // 按当前样式只显示对应的尺寸字段，避免 radius/chamfer 混淆
     const cc = z.corner_crop;
+    const ccStyle = cc?.style || "square";
+    let ccSizeField = "";
+    if (ccStyle === "rounded") {
+        ccSizeField = fNum("圆角半径 mm", cc?.radius_mm || 0, "cc_radius", { step: 0.5, min: 0 });
+    } else if (ccStyle === "chamfer") {
+        ccSizeField = fNum("倒角边长 mm", cc?.chamfer_mm || 0, "cc_chamfer", { step: 0.5, min: 0 });
+    } else {  // square：切矩形缺角，边长用 chamfer_mm
+        ccSizeField = fNum("切角边长 mm", cc?.chamfer_mm || 0, "cc_chamfer", { step: 0.5, min: 0 });
+    }
     const ccHtml = `<div class="cfg-form-row cc-wrap">
         ${fSwitch("四角裁剪", !!cc, "cc_enabled")}
         <div class="cc-detail" ${cc ? "" : "hidden"}>
-            ${fSelect("样式", cc?.style || "square", "cc_style",
-                [{ v: "square", t: "square 直角" }, { v: "rounded", t: "rounded 圆角" }, { v: "chamfer", t: "chamfer 倒角" }])}
-            ${fNum("圆角半径 mm", cc?.radius_mm || 0, "cc_radius", { step: 0.5, min: 0 })}
-            ${fNum("倒角 mm", cc?.chamfer_mm || 0, "cc_chamfer", { step: 0.5, min: 0 })}
+            ${fSelect("样式", ccStyle, "cc_style",
+                [{ v: "square", t: "square 方缺角" }, { v: "rounded", t: "rounded 圆角" }, { v: "chamfer", t: "chamfer 三角倒角" }])}
+            ${ccSizeField}
         </div></div>`;
 
     const html =
@@ -278,7 +287,8 @@ function bindCornerCrop(container, z) {
     if (!sw || !detail) return;
     sw.addEventListener("change", () => {
         if (sw.checked) {
-            z.corner_crop = { style: "square", radius_mm: 0, chamfer_mm: 0 };
+            // 开启默认 square 方缺角，预填切角边长 10mm
+            z.corner_crop = { style: "square", radius_mm: 0, chamfer_mm: 10 };
             detail.hidden = false;
             cfg.forms.render("zone");
         } else {
@@ -290,9 +300,14 @@ function bindCornerCrop(container, z) {
     const styleEl = container.querySelector('[data-key="cc_style"]');
     const radEl = container.querySelector('[data-key="cc_radius"]');
     const chamEl = container.querySelector('[data-key="cc_chamfer"]');
-    if (styleEl) styleEl.addEventListener("change", () => { z.corner_crop.style = styleEl.value; });
-    if (radEl) radEl.addEventListener("change", () => { z.corner_crop.radius_mm = parseFloat(radEl.value); });
-    if (chamEl) chamEl.addEventListener("change", () => { z.corner_crop.chamfer_mm = parseFloat(chamEl.value); });
+    // 切样式时重渲染表单（显示对应尺寸字段）
+    if (styleEl) styleEl.addEventListener("change", () => {
+        z.corner_crop.style = styleEl.value;
+        cfg.forms.render("zone");
+        cfg.canvas.render();
+    });
+    if (radEl) radEl.addEventListener("change", () => { z.corner_crop.radius_mm = parseFloat(radEl.value); cfg.canvas.render(); });
+    if (chamEl) chamEl.addEventListener("change", () => { z.corner_crop.chamfer_mm = parseFloat(chamEl.value); cfg.canvas.render(); });
 }
 
 // ---- 标记层 ----

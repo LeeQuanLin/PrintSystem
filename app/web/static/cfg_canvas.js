@@ -42,6 +42,10 @@ cfg.canvas = {
                 parts.push(`<rect x="${z.x_mm || 0}" y="${z.y_mm || 0}" width="${z.width_mm || 0}" height="${z.height_mm || 0}"
                     fill="rgb(${z.color.join(",")})" opacity="0.5" pointer-events="none"/>`);
             }
+            // 四角裁剪轮廓示意（叠加在 zone 上，提示切角形状）
+            if (z.corner_crop) {
+                parts.push(cornerCropShape(z, z.x_mm || 0, z.y_mm || 0, z.width_mm || 0, z.height_mm || 0));
+            }
         });
 
         // 边框标记（虚线矩形，支持多个）
@@ -82,4 +86,39 @@ function escapeHtml(s) {
     return (s ?? "").toString().replace(/[&<>"']/g, c => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
     }[c]));
+}
+
+/**
+ * 生成四角裁剪的 SVG 轮廓（stroke 虚线，提示切角形状）。
+ * square=方形缺角 / chamfer=三角倒角 / rounded=圆角。
+ */
+function cornerCropShape(z, x, y, w, h) {
+    const cc = z.corner_crop;
+    const style = cc.style;
+    const r = cc.radius_mm || 0;
+    const c = cc.chamfer_mm || 0;
+    // 切角量不超过 zone 一半
+    const cw = Math.min(c, w / 2);
+    const ch = Math.min(c, h / 2);
+    const rw = Math.min(r, w / 2);
+    const rh = Math.min(r, h / 2);
+    let d = "";
+    if (style === "rounded" && r > 0) {
+        // 圆角：直接用 rect rx
+        return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rw}" ry="${rh}"
+            fill="none" stroke="#d33" stroke-width="0.4" stroke-dasharray="1.5 1" pointer-events="none" class="cfg-cv-corner"/>`;
+    }
+    if (style === "chamfer" && c > 0) {
+        // 八边形：四角切三角斜边
+        d = `M ${x + cw} ${y} L ${x + w - cw} ${y} L ${x + w} ${y + ch} L ${x + w} ${y + h - ch} ` +
+            `L ${x + w - cw} ${y + h} L ${x + cw} ${y + h} L ${x} ${y + h - ch} L ${x} ${y + ch} Z`;
+    } else if (style === "square" && c > 0) {
+        // 12 点：四角各切方形缺口
+        d = `M ${x + cw} ${y} L ${x + w - cw} ${y} L ${x + w - cw} ${y + ch} L ${x + w} ${y + ch} ` +
+            `L ${x + w} ${y + h - ch} L ${x + w - cw} ${y + h - ch} L ${x + w - cw} ${y + h} ` +
+            `L ${x + cw} ${y + h} L ${x + cw} ${y + h - ch} L ${x} ${y + h - ch} L ${x} ${y + ch} L ${x + cw} ${y + ch} Z`;
+    } else {
+        return "";
+    }
+    return `<path d="${d}" fill="none" stroke="#d33" stroke-width="0.4" stroke-dasharray="1.5 1" pointer-events="none" class="cfg-cv-corner"/>`;
 }
