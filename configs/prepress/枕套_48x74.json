@@ -1,0 +1,93 @@
+{
+  "type": "枕套",
+  "size": "48x74",
+  "name": "48*74cm",
+  "params": {
+    "width_mm": 1800,
+    "height_mm": 580,
+    "bleed_mm": 0,
+    "dpi": 150,
+    "bitdepth": 8,
+    "color_profile": "srgb",
+    "background": {
+      "enabled": true,
+      "fill_color": [
+        255,
+        255,
+        255
+      ]
+    },
+    "zones": [
+      {
+        "name": "FaceA",
+        "type": "image",
+        "x_mm": 240,
+        "y_mm": 0,
+        "width_mm": 840,
+        "height_mm": 580,
+        "fit_mode": "cover"
+      }
+    ],
+    "marks": {
+      "crop_marks": {
+        "enabled": true,
+        "color": "black",
+        "width_mm": 0.02,
+        "dashed": true,
+        "dash_length_mm": 3,
+        "gap_length_mm": 1.4
+      },
+      "zipper_marks": {
+        "enabled": false,
+        "side": "left",
+        "span_mm": null,
+        "pitch_mm": null,
+        "line_width_mm": 0.5,
+        "alignment": "center",
+        "offset_mm": 5,
+        "length_mm": 10,
+        "color": "black"
+      },
+      "text_marks": {
+        "enabled": true,
+        "color": "black",
+        "font_size_pt": 12,
+        "items": [
+          {
+            "text": "棉创 LQL %(图片名)s 枕套 48*74cm",
+            "x_mm": 2,
+            "y_mm": 2,
+            "rotation": 0
+          }
+        ]
+      },
+      "border_marks": [
+        {
+          "enabled": true,
+          "color": "black",
+          "x_mm": 250,
+          "y_mm": 10,
+          "width_mm": 820,
+          "height_mm": 560,
+          "width_mm_line": 0.17,
+          "dash_length_mm": 3,
+          "gap_length_mm": 1.2
+        }
+      ]
+    },
+    "output": {
+      "formats": [
+        "png"
+      ],
+      "save_name": "棉创 %(图片名)s 枕套 48x74cm"
+    },
+    "solid_layer": {
+      "enabled": true,
+      "name": "SolidColor",
+      "auto_color": {
+        "source": "FaceA",
+        "method": "dominant"
+      }
+    }
+  }
+}

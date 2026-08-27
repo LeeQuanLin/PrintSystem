@@ -228,6 +228,17 @@ def list(
     return [ImageRecord.from_row(r) for r in rows]
 
 
+def count(
+    *,
+    source: Optional[str] = None,
+    ref_type: Optional[str] = None,
+    ref_size: Optional[str] = None,
+    q: Optional[str] = None,
+) -> int:
+    """按条件统计总条数（与 list 同筛选，用于分页）。"""
+    return db.count_images(source=source, ref_type=ref_type, ref_size=ref_size, q=q)
+
+
 # ---- 清理 ----
 
 def delete(image_id: str) -> bool:

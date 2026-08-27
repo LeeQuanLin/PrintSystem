@@ -25,11 +25,7 @@
         "y_mm": 3,
         "width_mm": 94,
         "height_mm": 94,
-        "fit_mode": "stretch",
-        "corner_crop": {
-          "style": "rounded",
-          "radius_mm": 5
-        }
+        "fit_mode": "stretch"
       }
     ],
     "marks": {
@@ -37,32 +33,34 @@
         "enabled": true,
         "color": "black",
         "width_mm": 0.2,
-        "length_mm": 5,
-        "offset_mm": 3
+        "dashed": false,
+        "dash_length_mm": 2,
+        "gap_length_mm": 2
       },
       "zipper_marks": {
-        "enabled": true,
+        "enabled": false,
         "side": "left",
-        "span_mm": 80,
-        "pitch_mm": 20,
+        "span_mm": null,
+        "pitch_mm": null,
         "line_width_mm": 0.5,
-        "alignment": "distribute"
+        "alignment": "center",
+        "offset_mm": 5,
+        "length_mm": 10,
+        "color": "black"
       },
       "text_marks": {
-        "enabled": true,
-        "items": [
-          {
-            "text": "demo",
-            "x_mm": 5,
-            "y_mm": 5
-          }
-        ]
-      }
+        "enabled": false,
+        "color": "black",
+        "font_size_pt": 12,
+        "items": []
+      },
+      "border_marks": []
     },
     "output": {
       "formats": [
         "psd"
-      ]
+      ],
+      "save_name": ""
     }
   }
 }

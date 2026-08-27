@@ -64,6 +64,53 @@ def _resolve_color(zone: Zone, image_path: Path) -> tuple[int, int, int]:
     raise ValueError(f"纯色区 {zone.name} 既无 color 也无 auto_color")
 
 
+def _resolve_solid_color(solid_layer, image_path: Path) -> tuple[int, int, int]:
+    """
+    解析独立纯色层颜色：手动色或从源图提取。
+
+    与 _resolve_color 同构（SolidLayer 也有 color/auto_color 二选一），
+    但 SolidLayer 无 name 用于报错，用固定提示。
+    """
+    if solid_layer.color is not None:
+        r, g, b = solid_layer.color
+        return (int(r), int(g), int(b))
+
+    if solid_layer.auto_color is not None:
+        src = Image.open(image_path).convert("RGB")
+        return extract_color(src, solid_layer.auto_color.method)
+
+    raise ValueError("纯色层既无 color 也无 auto_color")
+
+
+def _compute_alpha_bbox(canvas, background, solid_layers, zone_layers) -> tuple[int, int, int, int]:
+    """
+    合成 background+solid+zones 后计算非透明像素包围盒。
+
+    裁剪线沿此包围盒内描边。合成仅用于算 bbox，不保留全图（大图时省内存）。
+    background 若启用则整画布有像素，bbox 即整个画布；否则按 solid+zones 实际非透明区算。
+
+    Returns:
+        (x1, y1, x2, y2) 像素包围盒（PIL getbbox 语义，x2/y2 为开区间右下角）
+    """
+    w, h = canvas.width_px, canvas.height_px
+    # background 启用即整画布非透明
+    if background is not None and background.enabled:
+        return (0, 0, w, h)
+    # 否则合成 solid + zones 的 alpha 通道求 bbox
+    composite = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    for _name, layer in solid_layers + zone_layers:
+        if layer.mode != "RGBA":
+            layer = layer.convert("RGBA")
+        composite.alpha_composite(layer)
+    bbox = composite.getbbox()
+    if bbox is None:
+        # 全透明：兜底用成品矩形
+        bx = canvas.bleed_px
+        by = canvas.bleed_px
+        return (bx, by, bx + w - 2 * bx, by + h - 2 * by)
+    return bbox
+
+
 def _fill_template(template: str, vars_dict: dict[str, str]) -> str:
     """
     填充 %(name)s 模板。未提供的变量留空（空字符串），不报错。
@@ -191,6 +238,14 @@ def run(
         )
         state.update("画布", 15, f"{canvas.width_px}×{canvas.height_px}px")
 
+        # 独立纯色层（位于 background 之上、zones 之下，整画布填充）
+        solid_layers: list[tuple[str, Image.Image]] = []
+        sl = params.solid_layer
+        if sl is not None and sl.enabled:
+            color = _resolve_solid_color(sl, image_path)
+            layer = Image.new("RGBA", (canvas.width_px, canvas.height_px), color + (255,))
+            solid_layers.append((sl.name, layer))
+
         # 处理区域
         zone_layers: list[tuple[str, Image.Image]] = []
         n_zones = len(params.zones)
@@ -208,11 +263,14 @@ def run(
 
         # 标记层
         mark_layers: list[tuple[str, Image.Image]] = []
+
+        # 裁剪线：沿实际像素包围盒内描边，需先合成 background+solid+zones 算 alpha bbox
         cm = params.marks.crop_marks
         if cm.enabled:
+            bbox = _compute_alpha_bbox(canvas, params.background, solid_layers, zone_layers)
             mark_layers.append((
                 "CropMarks",
-                make_crop_marks_layer(canvas, params.width_mm, params.height_mm, cm, params.dpi),
+                make_crop_marks_layer(canvas, bbox, cm, params.dpi),
             ))
         zm = params.marks.zipper_marks
         if zm.enabled:
@@ -232,16 +290,17 @@ def run(
                 "TextMarks",
                 make_text_marks_layer(canvas, tm_filled, params.dpi),
             ))
-        bm = params.marks.border_marks
-        if bm is not None and bm.enabled:
-            mark_layers.append((
-                "BorderMarks",
-                make_border_marks_layer(canvas, bm, params.dpi),
-            ))
+        # 边框标记：支持多个，每个 enabled 的生成独立图层
+        for bm in params.marks.border_marks:
+            if bm.enabled:
+                mark_layers.append((
+                    bm.name,
+                    make_border_marks_layer(canvas, bm, params.dpi),
+                ))
         state.update("标记层", 85, f"{len(mark_layers)} 个标记层")
 
-        # 组装 PSD
-        psd = build_psd(canvas, params.background, zone_layers, mark_layers, dpi=params.dpi)
+        # 组装 PSD（层序：background → solid_layers → zones → marks）
+        psd = build_psd(canvas, params.background, solid_layers, zone_layers, mark_layers, dpi=params.dpi)
         state.update("组装 PSD", 90, f"层数={len(psd)} dpi={params.dpi}")
 
         # 写入：out_dir = {output_root}/{uuid}/，文件名用 final_save_name

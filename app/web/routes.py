@@ -25,6 +25,7 @@ from app.config import (
     get_storage,
     list_impose_presets,
     list_types,
+    rename_size_config,
     save_size_config,
 )
 from app.storage import store
@@ -78,6 +79,14 @@ def _resolve_config_path(type_id: str, size_id: str) -> Path:
         return get_size_config_path(type_id, size_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ---- 健康检查 ----
+
+@router.get("/health")
+async def health():
+    """容器 HEALTHCHECK 与运维探活用。"""
+    return {"status": "ok"}
 
 
 # ---- 页面 ----
@@ -204,6 +213,27 @@ async def api_config_prepress_delete(type_id: str, size_id: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"deleted": f"{type_id}/{size_id}"}
+
+
+@router.post("/api/config/prepress/rename")
+async def api_config_prepress_rename(body: dict):
+    """
+    重命名尺码的 type/size id 与显示名。
+
+    body: {old_type, old_size, new_type, new_size, new_name}
+    """
+    old_type = body.get("old_type")
+    old_size = body.get("old_size")
+    new_type = body.get("new_type")
+    new_size = body.get("new_size")
+    new_name = body.get("new_name")
+    if not (old_type and old_size and new_type and new_size):
+        raise HTTPException(status_code=400, detail="缺 old_type/old_size/new_type/new_size")
+    try:
+        path = rename_size_config(old_type, old_size, new_type, new_size, new_name or new_size)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"renamed": f"{new_type}/{new_size}", "file": path.name}
 
 
 @router.get("/api/config/impose")
@@ -356,12 +386,22 @@ async def api_library_list(
     limit: int = 100,
     offset: int = 0,
 ):
-    """文件库列表（按 created_at 倒序，支持筛选）。"""
+    """文件库列表（按 created_at 倒序，支持筛选与分页）。
+
+    每项附加 path：库内原图绝对路径，供印前生成页"从文件库选择"直接用。
+    返回 total：当前筛选条件下的总条数（用于分页），count 为本页条数。
+    """
     recs = store.list(
         source=source, ref_type=ref_type, ref_size=ref_size,
         q=q, limit=limit, offset=offset,
     )
-    return {"items": [r.to_dict() for r in recs], "count": len(recs)}
+    items = []
+    for r in recs:
+        d = r.to_dict()
+        d["path"] = str(store.original_path(r.id, r.stored_name))
+        items.append(d)
+    total = store.count(source=source, ref_type=ref_type, ref_size=ref_size, q=q)
+    return {"items": items, "count": len(recs), "total": total}
 
 
 @router.get("/api/library/{image_id}")

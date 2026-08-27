@@ -83,6 +83,34 @@ def list_images(
     offset: int = 0,
 ) -> list[dict[str, Any]]:
     """按条件分页查询，created_at 倒序。"""
+    clauses, params = _build_where(source, ref_type, ref_size, q)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    params.extend([limit, offset])
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM images{where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            params,
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def count_images(
+    *,
+    source: Optional[str] = None,
+    ref_type: Optional[str] = None,
+    ref_size: Optional[str] = None,
+    q: Optional[str] = None,
+) -> int:
+    """按条件统计总条数（与 list_images 同 where，用于分页）。"""
+    clauses, params = _build_where(source, ref_type, ref_size, q)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    with get_conn() as conn:
+        row = conn.execute(f"SELECT COUNT(*) AS c FROM images{where}", params).fetchone()
+    return int(row["c"]) if row else 0
+
+
+def _build_where(source, ref_type, ref_size, q) -> tuple[list[str], list[Any]]:
+    """构造查询条件子句与参数（list/count 共用）。"""
     clauses: list[str] = []
     params: list[Any] = []
     if source:
@@ -97,14 +125,7 @@ def list_images(
     if q:
         clauses.append("original_name LIKE ?")
         params.append(f"%{q}%")
-    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-    params.extend([limit, offset])
-    with get_conn() as conn:
-        rows = conn.execute(
-            f"SELECT * FROM images{where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            params,
-        ).fetchall()
-    return [dict(r) for r in rows]
+    return clauses, params
 
 
 def delete_image(image_id: str) -> bool:

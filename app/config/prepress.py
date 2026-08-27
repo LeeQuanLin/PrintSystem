@@ -101,13 +101,47 @@ class Background(BaseModel):
     fill_color: list[int] = Field(default_factory=lambda: [255, 255, 255])
 
 
+class SolidLayer(BaseModel):
+    """独立纯色层：跨整画布，手动色或自动取色（02 §3.4a）。
+
+    位于 background 之上、zones 之下，作整画布基色层。
+    与 background 并存：background 是底层底色，solid_layer 是其上的独立纯色层。
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    name: str = "SolidColor"                       # 写入 PSD 图层名，须 ASCII
+    color: Optional[list[int]] = None              # 手动 RGB，与 auto_color 二选一
+    auto_color: Optional[AutoColor] = None         # 自动提取（source 指向同尺码图片区 name）
+
+    @field_validator("name")
+    @classmethod
+    def _name_ascii(cls, v: str) -> str:
+        if not _ASCII_NAME.match(v):
+            raise ValueError(f"纯色层 name 限 ASCII（psd-tools 限制）: {v!r}")
+        return v
+
+    @model_validator(mode="after")
+    def _check_color_choice(self) -> "SolidLayer":
+        has_color = self.color is not None
+        has_auto = self.auto_color is not None
+        if has_color == has_auto:  # 同时有或同时无
+            raise ValueError("纯色层必须二选一：color 或 auto_color")
+        if self.color is not None and len(self.color) != 3:
+            raise ValueError("color 须为 3 元素 RGB")
+        return self
+
+
 class CropMarks(BaseModel):
+    """裁剪线：沿实际像素包围盒内部描一圈边（描边语义，非传统四角角标）。
+
+    生成时合成 background+solid+zones 后计算非透明像素包围盒，
+    在该包围盒内侧描绘一圈矩形边线（实线或虚线）。
+    """
     model_config = ConfigDict(extra="forbid")
     enabled: bool = True
     color: str = "black"
-    width_mm: float = Field(default=0.2, gt=0)
-    length_mm: float = Field(default=5, gt=0)
-    offset_mm: float = Field(default=3, ge=0)
+    width_mm: float = Field(default=0.2, gt=0)       # 线粗（毫米）
     dashed: bool = False              # 虚线开关
     dash_length_mm: float = Field(default=2, gt=0)   # 虚线段长
     gap_length_mm: float = Field(default=2, gt=0)    # 虚线间隙长
@@ -157,9 +191,10 @@ class TextMarks(BaseModel):
 
 
 class BorderMarks(BaseModel):
-    """虚线边框标记（可作为裁剪线替代）。"""
+    """虚线边框标记（矩形虚线框，可作裁剪线替代）。支持多个。"""
     model_config = ConfigDict(extra="forbid")
     enabled: bool = False
+    name: str = "BorderMarks"        # 写入 PSD 图层名，须 ASCII，多边框时须唯一
     color: str = "black"
     x_mm: float = 0                  # 左上角 X（毫米，相对画布左上角）
     y_mm: float = 0                  # 左上角 Y
@@ -169,13 +204,27 @@ class BorderMarks(BaseModel):
     dash_length_mm: float = Field(default=2, gt=0)    # 虚线段长
     gap_length_mm: float = Field(default=2, gt=0)     # 虚线间隙
 
+    @field_validator("name")
+    @classmethod
+    def _name_ascii(cls, v: str) -> str:
+        if not _ASCII_NAME.match(v):
+            raise ValueError(f"边框 name 限 ASCII（psd-tools 限制）: {v!r}")
+        return v
+
 
 class Marks(BaseModel):
     model_config = ConfigDict(extra="forbid")
     crop_marks: CropMarks = Field(default_factory=CropMarks)
     zipper_marks: ZipperMarks = Field(default_factory=ZipperMarks)
     text_marks: TextMarks = Field(default_factory=TextMarks)
-    border_marks: BorderMarks | None = None
+    border_marks: list[BorderMarks] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check_border_names_unique(self) -> "Marks":
+        names = [b.name for b in self.border_marks if b.enabled]
+        if len(names) != len(set(names)):
+            raise ValueError(f"边框标记 name 须唯一: {names}")
+        return self
 
 
 class Output(BaseModel):
@@ -196,6 +245,7 @@ class Params(BaseModel):
     bitdepth: Literal[8, 16] = 8
     color_profile: str = "srgb"
     background: Optional[Background] = None
+    solid_layer: Optional[SolidLayer] = None
     zones: list[Zone] = Field(min_length=1)
     marks: Marks = Field(default_factory=Marks)
     output: Output
@@ -205,7 +255,7 @@ class Params(BaseModel):
         names = [z.name for z in self.zones]
         if len(names) != len(set(names)):
             raise ValueError(f"区域 name 尺码内不唯一: {names}")
-        # auto_color.source 必须指向存在的图片区
+        # auto_color.source 必须指向存在的图片区（color 区与 solid_layer 共用此校验）
         image_names = {z.name for z in self.zones if z.type == "image"}
         canvas_w = self.width_mm + 2 * self.bleed_mm
         canvas_h = self.height_mm + 2 * self.bleed_mm
@@ -218,6 +268,12 @@ class Params(BaseModel):
             if z.x_mm < 0 or z.y_mm < 0 or z.x_mm + z.width_mm > canvas_w or z.y_mm + z.height_mm > canvas_h:
                 raise ValueError(
                     f"区域 {z.name} 超出画布范围 ({canvas_w}×{canvas_h}mm)"
+                )
+        # 纯色层 auto_color.source 同样须指向存在的图片区
+        if self.solid_layer and self.solid_layer.auto_color:
+            if self.solid_layer.auto_color.source not in image_names:
+                raise ValueError(
+                    f"纯色层 auto_color.source '{self.solid_layer.auto_color.source}' 未指向存在的图片区"
                 )
         return self
 

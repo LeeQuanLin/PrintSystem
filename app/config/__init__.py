@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from . import impose as _impose
 from . import storage as _storage
 from .impose import ImposeConfig, Preset
-from .prepress import Params, SizeEntry, TypeEntry
+from .prepress import Params, SizeEntry, TypeEntry, _SAFE_ID
 from .storage import StorageConfig
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,6 +40,8 @@ def _scan_prepress() -> dict[str, dict[str, dict]]:
         size_id = data.get("size")
         if not type_id or not size_id:
             raise ValueError(f"配置文件 {f} 缺 type 或 size 字段")
+        # 兼容旧配置：迁移 marks 字段到当前模型
+        _migrate_marks(data["params"])
         # 校验 params
         Params.model_validate(data["params"])
         index.setdefault(type_id, {})[size_id] = {
@@ -48,6 +50,27 @@ def _scan_prepress() -> dict[str, dict[str, dict]]:
             "params_dict": data["params"],
         }
     return index
+
+
+def _migrate_marks(params: dict) -> None:
+    """
+    迁移旧 marks 字段到当前模型（就地改 params）。
+
+    - crop_marks：移除已废弃的 length_mm / offset_mm（旧版四角角标用，现为描边语义）
+    - border_marks：旧版单个 dict → 新版 list[dict]；None 保持 None
+    """
+    marks = params.get("marks")
+    if not isinstance(marks, dict):
+        return
+    cm = marks.get("crop_marks")
+    if isinstance(cm, dict):
+        cm.pop("length_mm", None)
+        cm.pop("offset_mm", None)
+    bm = marks.get("border_marks")
+    if isinstance(bm, dict):
+        marks["border_marks"] = [bm]
+    elif bm is None:
+        marks["border_marks"] = []
 
 
 @lru_cache(maxsize=1)
@@ -128,13 +151,18 @@ def _size_file_path(type_id: str, size_id: str) -> Path:
 
 
 def get_size_raw(type_id: str, size_id: str) -> dict:
-    """返回某尺码配置 json 全文（含 type/size/name/params）。"""
+    """返回某尺码配置 json 全文（含 type/size/name/params）。
+
+    返回前迁移 marks 字段到当前模型（旧版字段不进编辑器）。
+    """
     idx = _scan_prepress()
     if type_id not in idx or size_id not in idx[type_id]:
         raise KeyError(f"尺码不存在: type={type_id} size={size_id}")
     path = PREPRESS_DIR / idx[type_id][size_id]["file"]
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    _migrate_marks(data["params"])
+    return data
 
 
 def save_size_config(type_id: str, size_id: str, data: dict) -> Path:
@@ -215,3 +243,60 @@ def delete_size_config(type_id: str, size_id: str) -> None:
     path = PREPRESS_DIR / idx[type_id][size_id]["file"]
     path.unlink()
     reload_all()
+
+
+def rename_size_config(
+    old_type: str, old_size: str,
+    new_type: str, new_size: str, new_name: str,
+) -> Path:
+    """
+    重命名尺码的 type/size id 与显示名。
+
+    改 id 等于重命名文件 + 改写文件内 type/size/name 字段。id 是文件名一部分，
+    故需删旧文件、写新文件。校验新 id 合法性与唯一性后 reload_all()。
+
+    Args:
+        old_type / old_size: 原定位
+        new_type / new_size: 新 id（须合法且不与现有冲突，除非就是原值）
+        new_name: 新显示名
+
+    Returns:
+        新文件路径
+
+    Raises:
+        ValueError: 原尺码不存在 / 新 id 含非法字符 / 新尺码已存在（他人占用）/ 校验失败
+    """
+    idx = _scan_prepress()
+    if old_type not in idx or old_size not in idx[old_type]:
+        raise ValueError(f"原尺码不存在: {old_type}/{old_size}")
+    for label, v in (("类型", new_type), ("尺码", new_size)):
+        if not _SAFE_ID.match(v):
+            raise ValueError(f"新{label} id 含非法字符（禁 / \\ : * ? \" < > | 及空白）: {v!r}")
+    # 新位置若被他人占用则拒绝（除非就是自己，即只改 name）
+    same_target = (new_type == old_type and new_size == old_size)
+    if not same_target and new_type in idx and new_size in idx[new_type]:
+        raise ValueError(f"目标尺码已存在: {new_type}/{new_size}")
+
+    # 读旧文件，改 type/size/name 字段
+    old_path = PREPRESS_DIR / idx[old_type][old_size]["file"]
+    with open(old_path, encoding="utf-8") as f:
+        data = json.load(f)
+    data["type"] = new_type
+    data["size"] = new_size
+    data["name"] = new_name or new_size
+
+    # 用新 id 校验 params（TypeEntry 整体校验：id 合法 + params 全量）
+    entry = {"id": new_size, "name": data["name"], "params": data["params"]}
+    try:
+        TypeEntry(id=new_type, name=new_type, sizes=[SizeEntry.model_validate(entry)])
+    except ValidationError as e:
+        raise ValueError(str(e)) from e
+
+    # 写新文件 → 删旧文件（先写后删，避免中途失败丢数据）
+    new_path = PREPRESS_DIR / f"{new_type}_{new_size}.json"
+    with open(new_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    if old_path != new_path:
+        old_path.unlink(missing_ok=True)
+    reload_all()
+    return new_path

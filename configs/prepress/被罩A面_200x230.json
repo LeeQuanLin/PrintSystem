@@ -1,0 +1,85 @@
+{
+  "type": "被罩A面",
+  "size": "200x230",
+  "name": "200*230cmF210x236cm",
+  "params": {
+    "width_mm": 2120,
+    "height_mm": 2380,
+    "bleed_mm": 0,
+    "dpi": 150,
+    "bitdepth": 8,
+    "color_profile": "srgb",
+    "background": {
+      "enabled": true,
+      "fill_color": [
+        255,
+        255,
+        255
+      ]
+    },
+    "zones": [
+      {
+        "name": "FaceA",
+        "type": "image",
+        "x_mm": 0,
+        "y_mm": 0,
+        "width_mm": 2120,
+        "height_mm": 2380,
+        "fit_mode": "cover"
+      }
+    ],
+    "marks": {
+      "crop_marks": {
+        "enabled": true,
+        "color": "black",
+        "width_mm": 0.2,
+        "dashed": false,
+        "dash_length_mm": 2,
+        "gap_length_mm": 2
+      },
+      "zipper_marks": {
+        "enabled": true,
+        "side": "left",
+        "span_mm": 1500,
+        "pitch_mm": 1500,
+        "line_width_mm": 0.25,
+        "alignment": "center",
+        "offset_mm": 0,
+        "length_mm": 10,
+        "color": "black"
+      },
+      "text_marks": {
+        "enabled": true,
+        "color": "black",
+        "font_size_pt": 12,
+        "items": [
+          {
+            "text": "棉创 LQL %(name)s 被罩A面 %(size)s",
+            "x_mm": 10,
+            "y_mm": 10,
+            "rotation": 0
+          }
+        ]
+      },
+      "border_marks": [
+        {
+          "enabled": true,
+          "color": "black",
+          "x_mm": 0,
+          "y_mm": 0,
+          "width_mm": 2120,
+          "height_mm": 2380,
+          "width_mm_line": 0.17,
+          "dash_length_mm": 2,
+          "gap_length_mm": 2
+        }
+      ]
+    },
+    "output": {
+      "formats": [
+        "psd"
+      ],
+      "save_name": ""
+    }
+  }
+}

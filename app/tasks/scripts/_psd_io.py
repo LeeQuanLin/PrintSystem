@@ -35,6 +35,7 @@ def _set_dpi(psd: PSDImage, dpi: int) -> None:
 def build_psd(
     canvas: CanvasPx,
     background,
+    solid_layers: list[tuple[str, Image.Image]],
     zone_layers: list[tuple[str, Image.Image]],
     mark_layers: list[tuple[str, Image.Image]],
     dpi: int = 150,
@@ -42,12 +43,14 @@ def build_psd(
     """
     组装分层 PSD。
 
+    层序：背景层（PSDImage.new 自带）→ 独立纯色层 → zones 列表顺序逐层 → 标记层。
     所有传入的 layer 必须已是画布像素尺寸（调用方负责把 zone 层按其 x/y 坐标
     放置到画布尺寸的透明层上）。
 
     Args:
         canvas: 画布像素几何
         background: config.prepress.Background 对象（可能为 None）
+        solid_layers: [(name, RGBA Image 画布尺寸)]，独立纯色层，位于 background 与 zones 之间
         zone_layers: [(name, RGBA Image 画布尺寸)]，按配置顺序
         mark_layers: [(name, RGBA Image 画布尺寸)]
         dpi: 写入 PSD 的分辨率
@@ -66,7 +69,7 @@ def build_psd(
 
     _set_dpi(psd, dpi)
 
-    for name, layer in zone_layers + mark_layers:
+    for name, layer in solid_layers + zone_layers + mark_layers:
         if layer.mode != "RGBA":
             layer = layer.convert("RGBA")
         if layer.size != (w, h):

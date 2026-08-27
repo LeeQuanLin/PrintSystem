@@ -74,14 +74,14 @@ def _draw_line(
 
 
 def make_crop_marks_layer(
-    canvas: CanvasPx, width_mm: float, height_mm: float, crop_marks, dpi: int
+    canvas: CanvasPx, bbox: tuple[int, int, int, int], crop_marks, dpi: int
 ) -> Optional[Image.Image]:
     """
-    生成裁切线层：成品四角各画 L 形线。
+    生成裁切线层：沿实际像素包围盒内侧描一圈矩形边（描边语义）。
 
     Args:
         canvas: 画布像素几何
-        width_mm / height_mm: 成品尺寸（不含出血）
+        bbox: 非透明像素包围盒 (x1, y1, x2, y2)，由调用方合成图层后计算
         crop_marks: config.prepress.CropMarks 对象
         dpi: 分辨率
 
@@ -95,33 +95,29 @@ def make_crop_marks_layer(
     draw = ImageDraw.Draw(layer)
     color = _color_tuple(crop_marks.color)
     line_w = max(1, mm_to_px(crop_marks.width_mm, dpi))
-    length = mm_to_px(crop_marks.length_mm, dpi)
-    offset = mm_to_px(crop_marks.offset_mm, dpi)
     dashed = crop_marks.dashed
     dash_px = mm_to_px(crop_marks.dash_length_mm, dpi)
     gap_px = mm_to_px(crop_marks.gap_length_mm, dpi)
 
-    # 画布坐标系：成品矩形 = 画布减去四周出血
-    bx = canvas.bleed_px
-    by = canvas.bleed_px
-    bw = canvas.width_px - 2 * canvas.bleed_px
-    bh = canvas.height_px - 2 * canvas.bleed_px
+    # 内描边：线完全在包围盒内部。
+    # getbbox 返回 (left, upper, right, lower)，right/lower 为开区间（不含该像素），
+    # 最后一个非透明像素是 right-1 / lower-1。
+    # ImageDraw.line 的 width>1 时线向右下扩展，故：
+    #   上/左边线在 left+inset / upper+inset（向内偏移半个线宽）
+    #   下/右边线在 (right-1) - (line_w-1) + inset / (lower-1) - (line_w-1) + inset
+    #   即右下边坐标 = bbox_right - line_w + inset，确保整条线（含扩展）不超包围盒
+    inset = line_w // 2
+    bx1, by1, bx2, by2 = bbox
+    x1 = bx1 + inset
+    y1 = by1 + inset
+    x2 = bx2 - line_w + inset
+    y2 = by2 - line_w + inset
 
-    # 四角 L 形线，朝外（出血方向）
-    # 左上
-    _draw_line(draw, (bx - offset, by), (bx - offset - length, by), color, line_w, dashed, dash_px, gap_px)
-    _draw_line(draw, (bx, by - offset), (bx, by - offset - length), color, line_w, dashed, dash_px, gap_px)
-    # 右上
-    rx = bx + bw
-    _draw_line(draw, (rx + offset, by), (rx + offset + length, by), color, line_w, dashed, dash_px, gap_px)
-    _draw_line(draw, (rx, by - offset), (rx, by - offset - length), color, line_w, dashed, dash_px, gap_px)
-    # 左下
-    by2 = by + bh
-    _draw_line(draw, (bx - offset, by2), (bx - offset - length, by2), color, line_w, dashed, dash_px, gap_px)
-    _draw_line(draw, (bx, by2 + offset), (bx, by2 + offset + length), color, line_w, dashed, dash_px, gap_px)
-    # 右下
-    _draw_line(draw, (rx + offset, by2), (rx + offset + length, by2), color, line_w, dashed, dash_px, gap_px)
-    _draw_line(draw, (rx, by2 + offset), (rx, by2 + offset + length), color, line_w, dashed, dash_px, gap_px)
+    # 四条边（实线或虚线），内描边不超出包围盒
+    _draw_line(draw, (x1, y1), (x2, y1), color, line_w, dashed, dash_px, gap_px)  # 上
+    _draw_line(draw, (x1, y2), (x2, y2), color, line_w, dashed, dash_px, gap_px)  # 下
+    _draw_line(draw, (x1, y1), (x1, y2), color, line_w, dashed, dash_px, gap_px)  # 左
+    _draw_line(draw, (x2, y1), (x2, y2), color, line_w, dashed, dash_px, gap_px)  # 右
 
     return layer
 
@@ -302,12 +298,18 @@ def make_border_marks_layer(
     gap_px = mm_to_px(border_marks.gap_length_mm, dpi)
 
     # 画布坐标系：x/y 相对画布左上角（0,0 = 画布左上角 = 图片左上角）
-    # 内描边：线完全在矩形内部，向内偏移 line_w//2
+    # 内描边：线完全在矩形内部。
+    # ImageDraw.line width>1 时线向右下扩展，故上/左边 +inset，
+    # 右/下边基于矩形右下角（闭区间 = x+width-1）减 line_w-1 再 +inset，确保不超矩形。
     inset = line_w // 2
-    x1 = mm_to_px(border_marks.x_mm, dpi) + inset
-    y1 = mm_to_px(border_marks.y_mm, dpi) + inset
-    x2 = x1 + mm_to_px(border_marks.width_mm, dpi) - 1 - 2 * inset
-    y2 = y1 + mm_to_px(border_marks.height_mm, dpi) - 1 - 2 * inset
+    rect_x1 = mm_to_px(border_marks.x_mm, dpi)
+    rect_y1 = mm_to_px(border_marks.y_mm, dpi)
+    rect_x2 = rect_x1 + mm_to_px(border_marks.width_mm, dpi) - 1   # 闭区间右下
+    rect_y2 = rect_y1 + mm_to_px(border_marks.height_mm, dpi) - 1
+    x1 = rect_x1 + inset
+    y1 = rect_y1 + inset
+    x2 = rect_x2 - line_w + 1 + inset
+    y2 = rect_y2 - line_w + 1 + inset
 
     # 四条边虚线（内描边，不超出配置的 width/height 范围）
     _draw_line(draw, (x1, y1), (x2, y1), color, line_w, True, dash_px, gap_px)  # 上

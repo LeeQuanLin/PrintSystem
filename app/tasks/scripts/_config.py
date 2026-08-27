@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from app.config import _migrate_marks
 from app.config.prepress import Params
 
 
@@ -30,4 +31,6 @@ def load_params(config_path: str | Path) -> Params:
         raise FileNotFoundError(f"配置文件不存在: {path}")
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
+    # 兼容旧配置：迁移 marks 字段到当前模型（旧版 crop_marks 角标字段、dict 形 border_marks）
+    _migrate_marks(data["params"])
     return Params.model_validate(data["params"])

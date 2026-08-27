@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="cfg-layout-prepress">
-    <!-- 左：树 + 编辑器 -->
+    <!-- 左：类型/尺码树 -->
     <section class="card cfg-prepress">
         <div class="card-head">
             <h2>印前配置</h2>
@@ -14,7 +14,7 @@
         <div class="cfg-body">
             <div class="cfg-tree" id="cfg-tree"><div class="empty">加载中…</div></div>
             <div class="cfg-editor" id="cfg-editor">
-                <div class="cfg-editor-empty">选择左侧某个尺码，在此查看与编辑其 JSON 配置。</div>
+                <div class="cfg-editor-empty">选择左侧某个尺码，在此图形化编辑或查看 JSON。</div>
             </div>
         </div>
     </section>
@@ -27,19 +27,13 @@
             <p class="cfg-ref-p"><b>background</b>：背景层。<code>enabled</code> 是否生成；<code>fill_color</code> RGB 三元组，如 [255,255,255]。</p>
             <p class="cfg-ref-p"><b>zones（图层，核心）</b>：至少 1 个。每个区独有尺寸/位置，<code>name</code> 须 ASCII 且尺码内唯一（写入 PSD 图层名）。</p>
             <ul class="cfg-ref-ul">
-                <li><b>图片区</b> <code>type:"image"</code>：承载上传图。<code>x_mm/y_mm/width_mm/height_mm</code> 位置与大小；<code>fit_mode</code>：<code>stretch</code>（拉伸铺满）/ <code>contain</code>（等比留白）/ <code>cover</code>（裁切铺满）。</li>
-                <li><b>纯色区</b> <code>type:"color"</code>：填充纯色。<code>color</code> 手动 RGB 或 <code>auto_color</code> 自动提取主色（<code>source</code> 指向同尺码图片区 name，<code>method</code> 为 dominant/average），<b>二选一</b>。</li>
-                <li><b>四角裁剪</b> <code>corner_crop</code>：<code>style</code> = square/rounded/chamfer；rounded 需 <code>radius_mm</code>，chamfer 需 <code>chamfer_mm</code>。</li>
-                <li>可选微调：<code>offset_x_mm/offset_y_mm</code>、<code>scale</code>（默认 1.0）、<code>rotation</code>。</li>
+                <li><b>图片区</b> <code>type:"image"</code>：承载上传图。<code>fit_mode</code>：<code>stretch</code>（拉伸铺满）/ <code>contain</code>（等比留白）/ <code>cover</code>（裁切铺满）。</li>
+                <li><b>纯色区</b> <code>type:"color"</code>：<code>color</code> 手动 RGB 或 <code>auto_color</code> 自动提取主色（<code>source</code> 指向同尺码图片区 name，<code>method</code> 为 dominant/average），<b>二选一</b>。</li>
+                <li><b>四角裁剪</b> <code>corner_crop</code>：<code>style</code> = square/rounded/chamfer。</li>
             </ul>
-            <p class="cfg-ref-p"><b>marks（标记层）</b>：三类各自开关。</p>
-            <ul class="cfg-ref-ul">
-                <li><code>crop_marks</code> 裁剪线：<code>enabled/color/width_mm/length_mm/offset_mm</code>。</li>
-                <li><code>zipper_marks</code> 拉链标记：<code>side</code> top/bottom/left/right；<code>span_mm</code> 跨度、<code>pitch_mm</code> 间距；<code>alignment</code> start/center/end/distribute。</li>
-                <li><code>text_marks</code> 文字标记：<code>items</code> 数组，每项 <code>text</code>（支持 %(name)s 占位符）/ <code>x_mm/y_mm</code>。</li>
-            </ul>
-            <p class="cfg-ref-p"><b>output</b>：<code>formats</code> 非空数组（psd/tif/png）；<code>save_name</code> 保存名（支持 %(name)s 占位符，留空则用"印前_类型_尺码"）。</p>
-            <p class="cfg-ref-p cfg-ref-note">校验：区域须在画布范围（width+2×bleed）内；auto_color.source 须指向同尺码图片区；id 限 ASCII。</p>
+            <p class="cfg-ref-p"><b>marks（标记层）</b>：裁剪线 / 拉链标记 / 文字标记 / 边框标记，各自开关。</p>
+            <p class="cfg-ref-p"><b>output</b>：<code>formats</code> 非空数组（psd/tif/png）；<code>save_name</code> 支持占位符。</p>
+            <p class="cfg-ref-p cfg-ref-note">图形编辑器与 JSON 双向同步；保存时后端校验兜底。</p>
         </div>
     </aside>
 </div>
@@ -64,7 +58,7 @@
             <label class="field"><span class="field-label">显示名</span>
                 <input type="text" id="cfg-new-name" placeholder="如 180x200cm" autocomplete="off">
             </label>
-            <p class="modal-hint">将以空白模板创建。类型/尺码 ID 允许中文，仅禁 <code>/ \ : * ? " &lt; &gt; |</code> 及空格；创建后可在编辑器完善参数。</p>
+            <p class="modal-hint">将以空白模板创建。类型/尺码 ID 允许中文，仅禁 <code>/ \ : * ? " &lt; &gt; |</code> 及空格。</p>
         </div>
         <div class="modal-actions">
             <button class="btn btn-ghost" id="cfg-modal-cancel">取消</button>
@@ -73,4 +67,8 @@
     </div>
 </div>
 {% endblock %}
-{% block scripts %}<script src="/static/config_prepress.js"></script>{% endblock %}
+{% block scripts %}
+<script src="/static/cfg_forms.js"></script>
+<script src="/static/cfg_canvas.js"></script>
+<script src="/static/config_prepress.js"></script>
+{% endblock %}

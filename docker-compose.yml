@@ -1,0 +1,18 @@
+# 印前文件服务器 —— 单容器部署
+# Web 服务 + 进程内任务 Worker 同进程，无需独立 Worker 容器
+# 设计见 docs/08-部署与运维.md
+services:
+  prepress:
+    build: .
+    image: prepress-server:latest
+    container_name: prepress
+    ports:
+      - "8000:8000"
+    volumes:
+      # 文件库：图片 + library.db（重建容器不丢数据）
+      - ./data/library:/app/data/library
+      # 配置文件：改后重启容器即生效，无需重建镜像
+      - ./configs:/app/configs
+      # 系统日志（待日志模块落地后写入）
+      - ./logs:/app/logs
+    restart: unless-stopped
