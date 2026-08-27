@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}排版拼版 · 印前文件服务器{% endblock %}
+{% block page %}impose{% endblock %}
+{% block breadcrumb %}<span class="crumb">作业</span><span class="crumb-sep">/</span><span class="crumb-current">排版拼版</span>{% endblock %}
+
+{% block content %}
+<div class="workspace impose-workspace">
+    <!-- 左：图件列表 -->
+    <section class="card card-job" id="impose-images">
+        <div class="card-head">
+            <h2>图件</h2>
+            <span class="card-tag">按顺序拼版</span>
+        </div>
+        <div class="img-add">
+            <button type="button" class="btn btn-ghost" id="add-upload">上传图片</button>
+            <button type="button" class="btn btn-ghost" id="add-pick">从文件库选</button>
+            <input type="file" id="img-file-input" multiple accept="image/*" hidden>
+            <span class="img-count" id="img-count">0 张</span>
+        </div>
+        <div id="img-list" class="img-list">
+            <div class="empty">添加图片后可调整顺序与旋转。</div>
+        </div>
+    </section>
+
+    <!-- 中：预览画布 -->
+    <section class="card" id="impose-preview">
+        <div class="card-head">
+            <h2>预览</h2>
+            <span class="card-tag" id="preview-scale">—</span>
+        </div>
+        <div class="preview-wrap" id="preview-wrap">
+            <canvas id="preview-canvas" width="600" height="400"></canvas>
+            <div class="preview-empty" id="preview-empty">添加图件后实时预览拼版布局。</div>
+        </div>
+    </section>
+
+    <!-- 右：配置 + 任务队列 -->
+    <aside class="impose-side">
+        <section class="card" id="impose-config">
+            <div class="card-head">
+                <h2>配置</h2>
+                <span class="card-tag">内联</span>
+            </div>
+            <div class="form-row">
+                <label class="field"><span class="field-label">画布宽 (mm)</span>
+                    <input type="number" id="cfg-width" value="2600" min="1" step="1"></label>
+                <label class="field"><span class="field-label">画布高 (mm)</span>
+                    <input type="number" id="cfg-height" value="2000" min="1" step="1"></label>
+            </div>
+            <div class="form-row">
+                <label class="field"><span class="field-label">DPI</span>
+                    <input type="number" id="cfg-dpi" value="150" min="1" step="1"></label>
+                <label class="field"><span class="field-label">保存格式</span>
+                    <select id="cfg-format" disabled><option value="tif">TIF</option></select></label>
+            </div>
+            <label class="field"><span class="field-label">保存名</span>
+                <input type="text" id="cfg-save-name" placeholder="留空则自动命名"></label>
+            <div class="actions">
+                <button type="button" id="impose-btn" class="btn btn-primary" disabled>提交拼版</button>
+            </div>
+        </section>
+    </aside>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/impose.js"></script>{% endblock %}

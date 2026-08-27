@@ -13,8 +13,10 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
+from app.config.impose import Preset
 from app.storage import store
 from app.tasks.scripts._state import State, TaskStatus
+from app.tasks.scripts.impose import SlotInput, run as impose_run
 from app.tasks.scripts.prepress import run
 from app.web import ws as _ws
 
@@ -137,3 +139,88 @@ def all_tasks() -> list[dict]:
     """所有任务摘要（用于 WS 重连后下发全量）。"""
     with _lock:
         return [{"task_id": tid, **s.to_dict()} for tid, s in _tasks.items()]
+
+
+# ---- 排版任务 ----
+
+def _ingest_impose_output(state: State, ref_type: str | None, task_id: str) -> None:
+    """把 impose.run 产出的单 TIF ingest 进文件库，更新 state.outputs 指向库内路径。
+
+    缩略图复用引擎已生成的（state.thumb_path），避免重复合成大画布。
+    """
+    if not state.outputs:
+        return
+    o = state.outputs[0]
+    src = Path(o["path"])
+    if not src.exists():
+        return
+    thumb_src = state.thumb_path if state.thumb_path and Path(state.thumb_path).exists() else None
+    rec = store.ingest_file(
+        src,
+        original_name=src.name,
+        source="impose",
+        fmt=o["format"],
+        ref_type=ref_type,
+        task_id=task_id,
+        thumb_src=thumb_src,
+        move=True,
+    )
+    state.outputs[0] = {**o, "library_id": rec.id,
+                        "path": str(store.original_path(rec.id, rec.stored_name))}
+    if rec.id:
+        state.thumb_path = str(store.thumb_path(rec.id))
+    # 清理暂存空壳目录
+    _cleanup_staging(thumb_src if thumb_src else None)
+
+
+def submit_impose(
+    preset: Preset,
+    slots: list[dict | None],
+    output_root: str,
+    save_name: str | None = None,
+) -> str:
+    """
+    起后台线程跑排版拼版，返回 task_id。
+
+    Args:
+        preset: 排版预设对象（由调用方从内联配置构造）
+        slots: 槽位列表（行优先），每项 {image_id, rotation, fit_mode?} 或 None（空槽）
+        output_root: 输出根目录（产物入库后清理）
+        save_name: 可选，覆盖默认保存名
+
+    Returns:
+        task_id
+    """
+    task_id = uuid.uuid4().hex
+    state = State(on_update=_make_on_update(task_id))
+    with _lock:
+        _tasks[task_id] = state
+
+    def worker() -> None:
+        try:
+            # image_id → 文件路径，构造 SlotInput
+            slot_inputs: list[SlotInput] = []
+            for s in slots:
+                if s is None:
+                    slot_inputs.append(SlotInput(path=None))
+                    continue
+                rec = store.get(s["image_id"])
+                if rec is None:
+                    raise ValueError(f"图件不存在: {s['image_id']}")
+                path = str(store.original_path(rec.id, rec.stored_name))
+                slot_inputs.append(SlotInput(
+                    path=path,
+                    rotation=int(s.get("rotation", 0)),
+                    fit_mode=s.get("fit_mode"),
+                ))
+            impose_run(slot_inputs, preset, output_root, state, save_name)
+            if state.status == TaskStatus.SUCCEEDED:
+                _ingest_impose_output(state, preset.id, task_id)
+                state._notify()
+        except Exception as e:
+            if state.status != TaskStatus.FAILED:
+                state.fail(f"worker 异常: {e}")
+
+    t = threading.Thread(target=worker, daemon=True, name=f"task-{task_id[:8]}")
+    t.start()
+    return task_id

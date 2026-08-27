@@ -103,6 +103,12 @@ async def library_page(request: Request):
     return templates.TemplateResponse(request, "library.html")
 
 
+@router.get("/impose", response_class=HTMLResponse)
+async def impose_page(request: Request):
+    """排版拼版页。"""
+    return templates.TemplateResponse(request, "impose.html")
+
+
 @router.get("/config", response_class=HTMLResponse)
 async def config_page(request: Request):
     """配置管理入口，重定向到印前配置。"""
@@ -238,7 +244,7 @@ async def api_config_prepress_rename(body: dict):
 
 @router.get("/api/config/impose")
 async def api_config_impose():
-    """排版配置只读摘要。"""
+    """排版配置只读摘要（含 layout，前端据此渲染槽位网格）。"""
     cfg = get_impose()
     return {
         "version": cfg.version,
@@ -248,8 +254,14 @@ async def api_config_impose():
                 "name": p.name,
                 "canvas": {"width_mm": p.canvas.width_mm, "height_mm": p.canvas.height_mm,
                            "dpi": p.canvas.dpi, "bitdepth": p.canvas.bitdepth},
+                "layout": {"mode": p.layout.mode, "rows": p.layout.rows, "cols": p.layout.cols,
+                           "default_fit_mode": p.layout.default_fit_mode},
                 "gutters": {"horizontal_mm": p.gutters.horizontal_mm,
                             "vertical_mm": p.gutters.vertical_mm, "margin_mm": p.gutters.margin_mm},
+                "marks": {"crop_marks": p.marks.crop_marks,
+                          "crop_mark_length_mm": p.marks.crop_mark_length_mm,
+                          "crop_mark_offset_mm": p.marks.crop_mark_offset_mm,
+                          "registration_marks": p.marks.registration_marks},
                 "output": {"format": p.output.format, "compression": p.output.compression},
             }
             for p in cfg.presets
@@ -329,6 +341,85 @@ async def api_generate(body: dict):
         vars=vars_dict,
         type_id=type_id,
         size_id=size_id,
+    )
+    return {"task_id": task_id}
+
+
+# ---- 排版提交（自由内联配置，原尺寸流式铺排） ----
+
+_VALID_ROT = {0, 90, 180, 270}
+
+
+@router.post("/api/impose/submit")
+async def api_impose_submit(body: dict):
+    """
+    提交排版任务（自由配置），起后台线程，返回 task_id。
+
+    图件按原始尺寸（仅旋转，不缩放）行优先流式铺排，从画布左上角开始，无间距无边距。
+    任一图件超出画布则失败。
+
+    body: {
+      canvas: {width_mm, height_mm, dpi},
+      output?: {compression?},
+      save_name?: str,
+      slots: [{image_id, rotation}]   # 按顺序
+    }
+    """
+    canvas = body.get("canvas") or {}
+    output = body.get("output") or {}
+    slots = body.get("slots")
+
+    # 校验 canvas
+    try:
+        width_mm = float(canvas.get("width_mm", 0))
+        height_mm = float(canvas.get("height_mm", 0))
+        dpi = int(canvas.get("dpi", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="canvas 字段非法")
+    if width_mm <= 0 or height_mm <= 0:
+        raise HTTPException(status_code=400, detail="画布宽高须 > 0")
+    if dpi < 1:
+        raise HTTPException(status_code=400, detail="dpi 须 ≥ 1")
+
+    # 校验 slots
+    if not isinstance(slots, list) or len(slots) == 0:
+        raise HTTPException(status_code=400, detail="slots 须为非空列表")
+    for i, s in enumerate(slots):
+        if not isinstance(s, dict) or not s.get("image_id"):
+            raise HTTPException(status_code=400, detail=f"图件 {i} 缺 image_id")
+        if int(s.get("rotation", 0)) not in _VALID_ROT:
+            raise HTTPException(status_code=400, detail=f"图件 {i} rotation 非法")
+
+    compression = output.get("compression") or "deflate"
+
+    # 构造 Preset（内联；layout/gutters 为占位，引擎已改用流式布局不再读它们）
+    from app.config.impose import (
+        Canvas as ImposeCanvas,
+        Gutters as ImposeGutters,
+        ImposeMarks,
+        ImposeOutput,
+        Layout as ImposeLayout,
+        Preset as ImposePreset,
+    )
+    try:
+        preset = ImposePreset(
+            id="inline",
+            name="自由排版",
+            canvas=ImposeCanvas(width_mm=width_mm, height_mm=height_mm, dpi=dpi, bitdepth=8),
+            layout=ImposeLayout(mode="grid", rows=1, cols=1, default_fit_mode="stretch"),
+            gutters=ImposeGutters(),  # 全 0，流式布局无间距边距
+            marks=ImposeMarks(crop_marks=False, registration_marks=False),
+            output=ImposeOutput(format="tif", compression=compression, color_profile="srgb"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"配置非法: {e}")
+
+    save_name = body.get("save_name")
+    task_id = _tasks.submit_impose(
+        preset=preset,
+        slots=slots,
+        output_root=str(OUTPUT_DIR),
+        save_name=save_name,
     )
     return {"task_id": task_id}
 

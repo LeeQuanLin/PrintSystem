@@ -14,7 +14,6 @@ const sizeSelect = document.getElementById("size-select");
 const zonesContainer = document.getElementById("zones-container");
 const varsContainer = document.getElementById("vars-container");
 const generateBtn = document.getElementById("generate-btn");
-const taskList = document.getElementById("task-list");
 
 // ---- 自定义下拉框 ----
 // 把原生 <select> 隐藏，渲染一个按钮 + 弹出列表；选中同步写回 <select> 并触发 change。
@@ -399,56 +398,6 @@ async function generate() {
     updateGenerateBtn();
 }
 
-// ---- WebSocket 进度 ----
-// WS 连接与任务表由全站共享的 task_badge.js 维护（window.taskStore），
-// 本页订阅其变化以渲染任务列表。
-
-// 任务状态排序权重：排队中 → 处理中 → 完成/失败
-const STATUS_ORDER = { pending: 0, running: 1, succeeded: 2, failed: 2 };
-
-function renderTaskList(allTasks) {
-    const tasks = allTasks.slice().sort((a, b) => {
-        const d = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
-        if (d !== 0) return d;
-        // 同状态：按 task_id 倒序（ULID 时间递增，新的在上）
-        return (b.task_id || "").localeCompare(a.task_id || "");
-    });
-    const summary = document.getElementById("task-summary");
-    if (summary) summary.textContent = `${tasks.length} 条`;
-
-    if (tasks.length === 0) {
-        taskList.innerHTML = `<div class="empty">提交生成后，任务进度将在此实时呈现。</div>`;
-        return;
-    }
-    taskList.innerHTML = tasks.map(t => `
-        <div class="task-card ${t.status}">
-            <div class="task-head">
-                <span class="task-id">${t.task_id?.slice(0, 8)}</span>
-                <span class="task-status">${statusLabel(t.status)}</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width:${t.progress}%"></div>
-            </div>
-            <div class="stage">${t.stage || ""} ${t.message || ""}</div>
-            ${t.status === "succeeded" ? renderDownloads(t) : ""}
-            ${t.status === "failed" ? `<div class="error">${t.error || ""}</div>` : ""}
-        </div>
-    `).join("");
-}
-
-function statusLabel(s) {
-    return ({ pending: "等待", running: "处理中", succeeded: "完成", failed: "失败" })[s] || s;
-}
-
-function renderDownloads(t) {
-    const links = (t.outputs || []).map(o =>
-        `<a href="/api/tasks/${t.task_id}/download/${o.format}" download>${o.format.toUpperCase()}</a>`
-    ).join("");
-    const thumb = t.thumb_path
-        ? `<a href="/api/tasks/${t.task_id}/thumb" target="_blank">缩略图</a>` : "";
-    return `<div class="downloads">${links}${thumb}</div>`;
-}
-
 // ---- 事件绑定 ----
 
 typeSelect.addEventListener("change", () => {
@@ -461,4 +410,3 @@ generateBtn.addEventListener("click", generate);
 
 // ---- 初始化 ----
 loadTypes();
-taskStore.subscribe(renderTaskList);

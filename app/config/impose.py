@@ -46,11 +46,22 @@ class ImposeOutput(BaseModel):
     color_profile: str = "srgb"
 
 
+class Layout(BaseModel):
+    """拼版方式与网格参数。字段定义见 docs/02-配置文件规范.md §4.2e、docs/05b-排版规范.md §3/§11。"""
+
+    model_config = ConfigDict(extra="forbid")
+    mode: Literal["grid"] = "grid"
+    rows: int = Field(ge=1)
+    cols: int = Field(ge=1)
+    default_fit_mode: Literal["stretch", "contain", "cover"] = "stretch"
+
+
 class Preset(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
     name: str
     canvas: Canvas
+    layout: Layout
     gutters: Gutters = Field(default_factory=Gutters)
     marks: ImposeMarks = Field(default_factory=ImposeMarks)
     output: ImposeOutput

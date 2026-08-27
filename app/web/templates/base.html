@@ -29,10 +29,9 @@
                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h5.5v5.5H2zM8.5 2.5H14v5.5H8.5zM2 8.5h5.5V14H2zM8.5 8.5H14V14H8.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
                 印前生成
             </a>
-            <a class="nav-item is-disabled" href="#" title="未启用">
+            <a class="nav-item" href="/impose" data-target="impose">
                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                 排版拼版
-                <span class="tag">未启用</span>
             </a>
             <a class="nav-item" href="/library" data-target="library">
                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12v9H2zM2 6.5h12M6 6.5v6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
@@ -79,7 +78,17 @@
                 {% block breadcrumb %}<span class="crumb">作业</span><span class="crumb-sep">/</span><span class="crumb-current">印前生成</span>{% endblock %}
             </div>
             <div class="topbar-readout">
-                {% block readout %}<span class="ro-item">任务 <b id="task-count">0</b></span>{% endblock %}
+                {% block readout %}
+                <button type="button" id="task-badge" class="task-badge" aria-label="任务队列">
+                    <span class="bd-ico"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v7H2zM2 13h6M8 13h6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+                    <span class="bd-num bd-total">0</span>
+                    <span class="bd-sep">·</span>
+                    <span class="bd-stat bd-running" title="进行中">0</span>
+                    <span class="bd-stat bd-ok" title="成功">0</span>
+                    <span class="bd-stat bd-fail" title="失败">0</span>
+                    <svg class="bd-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                {% endblock %}
             </div>
         </header>
 
