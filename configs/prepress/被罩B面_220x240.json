@@ -1,10 +1,10 @@
 {
-  "type": "被罩A面",
-  "size": "200x230",
-  "name": "200*230cmF210x236cm",
+  "type": "被罩B面",
+  "size": "220x240",
+  "name": "220*240cmF230*246cm",
   "params": {
-    "width_mm": 2120,
-    "height_mm": 2380,
+    "width_mm": 2320,
+    "height_mm": 2480,
     "bleed_mm": 0,
     "dpi": 150,
     "bitdepth": 8,
@@ -23,8 +23,8 @@
         "type": "image",
         "x_mm": 0,
         "y_mm": 0,
-        "width_mm": 2120,
-        "height_mm": 2380,
+        "width_mm": 2320,
+        "height_mm": 2480,
         "fit_mode": "cover"
       }
     ],
@@ -34,8 +34,8 @@
         "color": "black",
         "width_mm": 0.2,
         "dashed": false,
-        "dash_length_mm": 2,
-        "gap_length_mm": 2
+        "dash_length_mm": 3,
+        "gap_length_mm": 1.4
       },
       "zipper_marks": {
         "enabled": true,
@@ -54,7 +54,7 @@
         "font_size_pt": 12,
         "items": [
           {
-            "text": "棉创 LQL %(图片名)s 被罩A面 200*230cm",
+            "text": "棉创 LQL %(图片名)s 被罩A面 220*240cm",
             "x_mm": 10,
             "y_mm": 10,
             "rotation": 0
@@ -79,7 +79,16 @@
       "formats": [
         "png"
       ],
-      "save_name": "棉创 %(图片名)s 被罩A面 200x230cm"
+      "save_name": "棉创 %(图片名)s 被罩A面 220x240cm"
+    },
+    "solid_layer": {
+      "enabled": false,
+      "name": "SolidColor",
+      "color": [
+        255,
+        255,
+        255
+      ]
     }
   }
 }
