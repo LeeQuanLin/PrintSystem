@@ -1,10 +1,10 @@
 {
-  "type": "被罩A面",
-  "size": "150x200",
-  "name": "150*200cmF160x206cm",
+  "type": "床单",
+  "size": "180x230",
+  "name": "1.2m床单180*230cmF190*236cm",
   "params": {
-    "width_mm": 1620,
-    "height_mm": 2080,
+    "width_mm": 1920,
+    "height_mm": 2380,
     "bleed_mm": 0,
     "dpi": 150,
     "bitdepth": 8,
@@ -23,8 +23,8 @@
         "type": "image",
         "x_mm": 0,
         "y_mm": 0,
-        "width_mm": 1620,
-        "height_mm": 2080,
+        "width_mm": 1920,
+        "height_mm": 2380,
         "fit_mode": "cover"
       }
     ],
@@ -38,47 +38,45 @@
         "gap_length_mm": 1.4
       },
       "zipper_marks": {
-        "enabled": true,
-        "side": "right",
-        "span_mm": 1500,
-        "pitch_mm": 1500,
-        "line_width_mm": 0.17,
+        "enabled": false,
+        "side": "left",
+        "span_mm": null,
+        "pitch_mm": null,
+        "line_width_mm": 0.5,
         "alignment": "center",
-        "offset_mm": 0,
+        "offset_mm": 5,
         "length_mm": 10,
         "color": "black"
       },
-      "border_marks": [
-        {
-          "enabled": false,
-          "color": "black",
-          "x_mm": 0,
-          "y_mm": 0,
-          "width_mm": 1620,
-          "height_mm": 2080,
-          "width_mm_line": 0.17,
-          "dash_length_mm": 2,
-          "gap_length_mm": 2
-        }
-      ],
       "text_marks": {
         "enabled": true,
         "color": "black",
-        "font_size_pt": 10,
+        "font_size_pt": 12,
         "items": [
           {
-            "text": "棉创 LQL %(图片名)s 被罩A面 150x200cm",
+            "text": "棉创 LQL %(图片名)s 床单 180*230cm",
             "x_mm": 2,
-            "y_mm": 2
+            "y_mm": 2,
+            "rotation": 0
           }
         ]
-      }
+      },
+      "border_marks": []
     },
     "output": {
       "formats": [
         "png"
       ],
-      "save_name": "棉创 %(图片名)s 被罩A面 150x200cmF160x206cm"
+      "save_name": "棉创 %(图片名)s 床单 180x230cmF190x236cm"
+    },
+    "solid_layer": {
+      "enabled": false,
+      "name": "SolidColor",
+      "color": [
+        255,
+        255,
+        255
+      ]
     }
   }
 }
