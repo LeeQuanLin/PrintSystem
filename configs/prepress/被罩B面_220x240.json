@@ -32,10 +32,10 @@
       "crop_marks": {
         "enabled": true,
         "color": "black",
-        "width_mm": 0.2,
-        "dashed": false,
+        "width_mm": 0.02,
+        "dashed": true,
         "dash_length_mm": 3,
-        "gap_length_mm": 1.4
+        "gap_length_mm": 2
       },
       "zipper_marks": {
         "enabled": true,

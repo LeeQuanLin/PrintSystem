@@ -30,7 +30,7 @@
     ],
     "marks": {
       "crop_marks": {
-        "enabled": true,
+        "enabled": false,
         "color": "black",
         "width_mm": 0.02,
         "dashed": true,
@@ -69,9 +69,21 @@
           "y_mm": 10,
           "width_mm": 820,
           "height_mm": 560,
-          "width_mm_line": 0.17,
+          "width_mm_line": 0.02,
           "dash_length_mm": 3,
-          "gap_length_mm": 1.2
+          "gap_length_mm": 2
+        },
+        {
+          "enabled": true,
+          "name": "Border2",
+          "color": "black",
+          "x_mm": 0,
+          "y_mm": 0,
+          "width_mm": 1800,
+          "height_mm": 580,
+          "width_mm_line": 0.02,
+          "dash_length_mm": 3,
+          "gap_length_mm": 2
         }
       ]
     },
