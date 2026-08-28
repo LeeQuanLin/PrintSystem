@@ -25,9 +25,45 @@ async function loadStorage() {
             <div class="ro-row-sub">${d.library.path} / ${d.library.db_filename}</div></div>
         <div class="ro-row"><div class="ro-row-head">缩略图</div>
             <div class="ro-row-sub">${d.thumbnail.format.toUpperCase()} ${d.thumbnail.max_size_px}px · 质量 ${d.thumbnail.quality}</div></div>
-        <div class="ro-row"><div class="ro-row-head">并发</div>
-            <div class="ro-row-sub">max_concurrency = ${d.tasks.max_concurrency}</div></div>
+        <div class="ro-row">
+            <div class="ro-row-head">任务并发上限</div>
+            <div class="ro-row-sub">并行运行任务数（排队中的任务等空位）</div>
+            <div class="ro-concurrency">
+                <input type="number" id="cfg-max-concurrency" min="1" value="${d.tasks.max_concurrency}">
+                <button type="button" id="cfg-save-concurrency">保存</button>
+                <span class="ro-conc-msg" id="cfg-conc-msg"></span>
+            </div>
+        </div>
     `;
+    document.getElementById("cfg-save-concurrency").addEventListener("click", saveConcurrency);
+}
+
+async function saveConcurrency() {
+    const input = document.getElementById("cfg-max-concurrency");
+    const msg = document.getElementById("cfg-conc-msg");
+    const val = parseInt(input.value, 10);
+    if (!Number.isFinite(val) || val < 1) {
+        msg.textContent = "须为 ≥1 的整数";
+        msg.className = "ro-conc-msg err";
+        return;
+    }
+    msg.textContent = "保存中…";
+    msg.className = "ro-conc-msg";
+    try {
+        const r = await fetch("/api/config/storage/tasks", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ max_concurrency: val }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || "保存失败");
+        input.value = d.max_concurrency;
+        msg.textContent = "已保存";
+        msg.className = "ro-conc-msg ok";
+    } catch (e) {
+        msg.textContent = e.message;
+        msg.className = "ro-conc-msg err";
+    }
 }
 
 if (target === "impose") loadImpose();

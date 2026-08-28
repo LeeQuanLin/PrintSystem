@@ -1,6 +1,7 @@
-"""进程内任务管理。
+"""进程内任务管理与并发调度。
 
-submit() 起后台线程跑 prepress.run，State.on_update 回调触发 WS 广播。
+调度器线程按 storage.tasks.max_concurrency 限制并行任务数：submit 入队（PENDING），
+调度器循环取出任务起 worker 线程。上限动态读配置，改配置立即生效（无需重启）。
 任务状态存内存 dict，重启丢失（基础阶段，后续升级 SQLite）。
 
 产物入库：run() 成功后，由本模块（web 层，非脚本）把产物 ingest 进文件库，
@@ -10,9 +11,11 @@ from __future__ import annotations
 
 import threading
 import uuid
+from collections import deque
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
+from app.config import get_storage
 from app.config.impose import Preset
 from app.storage import store
 from app.tasks.scripts._state import State, TaskStatus
@@ -22,6 +25,71 @@ from app.web import ws as _ws
 
 _tasks: dict[str, State] = {}
 _lock = threading.Lock()
+
+# 调度队列：_queue 存 pending task_id 顺序，_pending 存对应 worker 闭包
+_queue: deque[str] = deque()
+_pending: dict[str, Callable[[], None]] = {}
+_running = 0
+_cv = threading.Condition()
+
+
+def _max_concurrency() -> int:
+    """从存储配置读并发上限（动态，配置改后立即生效）。"""
+    try:
+        return get_storage().tasks.max_concurrency
+    except Exception:
+        return 2  # 配置异常时兜底
+
+
+def _scheduler_loop() -> None:
+    """
+    调度线程主循环：按并发上限从队列拉起 worker。
+
+    上限每次循环动态读配置，故 PUT /api/config/storage/tasks 改完后立即对新任务生效。
+    """
+    global _running
+    while True:
+        with _cv:
+            while not _queue or _running >= _max_concurrency():
+                _cv.wait()
+            task_id = _queue.popleft()
+            worker = _pending.pop(task_id, None)
+            if worker is None:
+                continue  # 任务已被移除等异常情况
+            _running += 1
+        t = threading.Thread(
+            target=_run_worker, args=(task_id, worker),
+            daemon=True, name=f"task-{task_id[:8]}",
+        )
+        t.start()
+
+
+def _run_worker(task_id: str, worker: Callable[[], None]) -> None:
+    """跑 worker，结束后减运行计数并唤醒调度器取下一个任务。"""
+    global _running
+    try:
+        worker()
+    finally:
+        with _cv:
+            _running -= 1
+            _cv.notify_all()
+
+
+def _enqueue(task_id: str, worker: Callable[[], None]) -> None:
+    """任务入队（PENDING），广播排队状态并唤醒调度器。"""
+    with _cv:
+        _queue.append(task_id)
+        _pending[task_id] = worker
+        _cv.notify_all()
+    # 广播 pending 让前端立即看到"排队中"
+    with _lock:
+        st = _tasks.get(task_id)
+    if st is not None:
+        _ws.broadcast_threadsafe(task_id, st.to_dict())
+
+
+# 启动调度线程（模块加载时单例，daemon 随进程退出）
+threading.Thread(target=_scheduler_loop, daemon=True, name="task-scheduler").start()
 
 
 def _make_on_update(task_id: str):
@@ -124,8 +192,7 @@ def submit(
             if state.status != TaskStatus.FAILED:
                 state.fail(f"worker 异常: {e}")
 
-    t = threading.Thread(target=worker, daemon=True, name=f"task-{task_id[:8]}")
-    t.start()
+    _enqueue(task_id, worker)
     return task_id
 
 
@@ -221,6 +288,5 @@ def submit_impose(
             if state.status != TaskStatus.FAILED:
                 state.fail(f"worker 异常: {e}")
 
-    t = threading.Thread(target=worker, daemon=True, name=f"task-{task_id[:8]}")
-    t.start()
+    _enqueue(task_id, worker)
     return task_id

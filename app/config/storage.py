@@ -53,3 +53,24 @@ def load(path: Path = CONFIG_PATH) -> StorageConfig:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     return StorageConfig.model_validate(data)
+
+
+def save_tasks_concurrency(max_concurrency: int) -> int:
+    """
+    修改任务并发上限并落盘。
+
+    仅改 tasks.max_concurrency，其余字段保持不变。校验由 TasksCfg（ge=1）保证。
+    调用方需自行 reload_all() 使新值对调度器立即生效。
+
+    Args:
+        max_concurrency: 新并发上限（≥1）
+
+    Returns:
+        写入后的值
+    """
+    cfg = load()
+    cfg.tasks = TasksCfg(max_concurrency=max_concurrency)
+    data = cfg.model_dump()
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return cfg.tasks.max_concurrency

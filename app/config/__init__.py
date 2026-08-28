@@ -18,7 +18,7 @@ from . import impose as _impose
 from . import storage as _storage
 from .impose import ImposeConfig, Preset
 from .prepress import Params, SizeEntry, TypeEntry, _SAFE_ID
-from .storage import StorageConfig
+from .storage import StorageConfig, save_tasks_concurrency as _save_tasks_concurrency
 
 ROOT = Path(__file__).resolve().parents[2]
 PREPRESS_DIR = ROOT / "configs" / "prepress"
@@ -83,6 +83,21 @@ def get_impose() -> ImposeConfig:
 def get_storage() -> StorageConfig:
     """加载并返回存储配置（带校验，结果缓存）。"""
     return _storage.load()
+
+
+def update_tasks_concurrency(max_concurrency: int) -> int:
+    """
+    修改任务并发上限：落盘 storage.json + reload_all() 立即生效。
+
+    Args:
+        max_concurrency: 新并发上限（≥1）
+
+    Returns:
+        写入后的值
+    """
+    val = _save_tasks_concurrency(max_concurrency)
+    reload_all()
+    return val
 
 
 # ---- 印前配置查询 API ----

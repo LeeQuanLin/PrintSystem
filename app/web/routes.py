@@ -27,6 +27,7 @@ from app.config import (
     list_types,
     rename_size_config,
     save_size_config,
+    update_tasks_concurrency,
 )
 from app.storage import store
 from app.storage import store
@@ -279,6 +280,20 @@ async def api_config_storage():
                       "quality": s.thumbnail.quality},
         "tasks": {"max_concurrency": s.tasks.max_concurrency},
     }
+
+
+@router.put("/api/config/storage/tasks")
+async def api_config_storage_update_tasks(body: dict):
+    """
+    修改任务并发上限。body: {max_concurrency: int}
+
+    落盘 storage.json 并 reload，对调度器立即生效（新拉起的任务按新上限）。
+    """
+    mc = body.get("max_concurrency")
+    if not isinstance(mc, int) or isinstance(mc, bool) or mc < 1:
+        raise HTTPException(status_code=400, detail="max_concurrency 须为 ≥1 的整数")
+    val = update_tasks_concurrency(mc)
+    return {"max_concurrency": val}
 
 
 # ---- 上传 ----
