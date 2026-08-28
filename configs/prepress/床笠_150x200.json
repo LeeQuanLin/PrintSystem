@@ -1,7 +1,7 @@
 {
   "type": "床笠",
   "size": "150x200",
-  "name": "1.5m150*200cmF156*214cm",
+  "name": "1.5m床150*200cmF156*214cm",
   "params": {
     "width_mm": 2120,
     "height_mm": 2700,
@@ -54,18 +54,25 @@
         "color": "black"
       },
       "text_marks": {
-        "enabled": false,
+        "enabled": true,
         "color": "black",
         "font_size_pt": 12,
-        "items": []
+        "items": [
+          {
+            "text": "棉创 LQL %(图片名)s 床笠 150x200cm",
+            "x_mm": 282,
+            "y_mm": 2,
+            "rotation": 0
+          }
+        ]
       },
       "border_marks": []
     },
     "output": {
       "formats": [
-        "psd"
+        "png"
       ],
-      "save_name": ""
+      "save_name": "棉创 %(图片名)s 床笠 150x200cmF156x214cm"
     },
     "solid_layer": {
       "enabled": false,

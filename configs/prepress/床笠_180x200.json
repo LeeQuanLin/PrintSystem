@@ -1,16 +1,16 @@
 {
-  "type": "床单",
-  "size": "160x230",
-  "name": "0.9m床160*230cmF170*236cm",
+  "type": "床笠",
+  "size": "180x200",
+  "name": "1.8m床180x200cmF186x214cm",
   "params": {
-    "width_mm": 1720,
-    "height_mm": 2380,
+    "width_mm": 2420,
+    "height_mm": 2700,
     "bleed_mm": 0,
     "dpi": 150,
     "bitdepth": 8,
     "color_profile": "srgb",
     "background": {
-      "enabled": true,
+      "enabled": false,
       "fill_color": [
         255,
         255,
@@ -23,9 +23,14 @@
         "type": "image",
         "x_mm": 0,
         "y_mm": 0,
-        "width_mm": 1720,
-        "height_mm": 2380,
-        "fit_mode": "cover"
+        "width_mm": 2420,
+        "height_mm": 2700,
+        "fit_mode": "cover",
+        "corner_crop": {
+          "style": "square",
+          "radius_mm": 0,
+          "chamfer_mm": 280
+        }
       }
     ],
     "marks": {
@@ -54,8 +59,8 @@
         "font_size_pt": 12,
         "items": [
           {
-            "text": "棉创 LQL %(图片名)s 床单 160*230cm",
-            "x_mm": 2,
+            "text": "棉创 LQL %(图片名)s 床笠 180*200cm",
+            "x_mm": 282,
             "y_mm": 2,
             "rotation": 0
           }
@@ -67,7 +72,7 @@
       "formats": [
         "png"
       ],
-      "save_name": "棉创 %(图片名)s 床单 160x230cmF170x236cm"
+      "save_name": "棉创 %(图片名)s 床笠 180x200cmF186x214cm"
     },
     "solid_layer": {
       "enabled": false,

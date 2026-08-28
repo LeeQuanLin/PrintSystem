@@ -1,16 +1,16 @@
 {
   "type": "床笠",
   "size": "90x200",
-  "name": "90*200cm",
+  "name": "0.9m床90*200cmF96*214cm",
   "params": {
-    "width_mm": 100,
-    "height_mm": 100,
-    "bleed_mm": 3,
+    "width_mm": 1520,
+    "height_mm": 2700,
+    "bleed_mm": 0,
     "dpi": 150,
     "bitdepth": 8,
     "color_profile": "srgb",
     "background": {
-      "enabled": true,
+      "enabled": false,
       "fill_color": [
         255,
         255,
@@ -21,21 +21,26 @@
       {
         "name": "FaceA",
         "type": "image",
-        "x_mm": 3,
-        "y_mm": 3,
-        "width_mm": 94,
-        "height_mm": 94,
-        "fit_mode": "stretch"
+        "x_mm": 0,
+        "y_mm": 0,
+        "width_mm": 1520,
+        "height_mm": 2700,
+        "fit_mode": "cover",
+        "corner_crop": {
+          "style": "square",
+          "radius_mm": 0,
+          "chamfer_mm": 280
+        }
       }
     ],
     "marks": {
       "crop_marks": {
         "enabled": true,
         "color": "black",
-        "width_mm": 0.2,
-        "dashed": false,
-        "dash_length_mm": 2,
-        "gap_length_mm": 2
+        "width_mm": 0.02,
+        "dashed": true,
+        "dash_length_mm": 3,
+        "gap_length_mm": 1.4
       },
       "zipper_marks": {
         "enabled": false,
@@ -49,18 +54,34 @@
         "color": "black"
       },
       "text_marks": {
-        "enabled": false,
+        "enabled": true,
         "color": "black",
         "font_size_pt": 12,
-        "items": []
+        "items": [
+          {
+            "text": "棉创 LQL %(图片名)s 床笠 90x200cm",
+            "x_mm": 282,
+            "y_mm": 2,
+            "rotation": 0
+          }
+        ]
       },
       "border_marks": []
     },
     "output": {
       "formats": [
-        "psd"
+        "png"
       ],
-      "save_name": ""
+      "save_name": "棉创 %(图片名)s 床笠 90x200cmF96x214cm"
+    },
+    "solid_layer": {
+      "enabled": false,
+      "name": "SolidColor",
+      "color": [
+        255,
+        255,
+        255
+      ]
     }
   }
 }

@@ -103,16 +103,13 @@ def save_flat(psd: PSDImage, path: str | Path, fmt: str, dpi: int) -> None:
     composited = psd.composite()
     if composited.mode != "RGBA":
         composited = composited.convert("RGBA")
-    # 白底合成（alpha 拍平），TIF/PNG 不保留透明
-    bg = Image.new("RGBA", composited.size, (255, 255, 255, 255))
-    bg.alpha_composite(composited)
-    rgb = bg.convert("RGB")
+    # 保留 alpha：缺角等透明区在平面导出中仍为透明，不做白底拍平
+    # （白底拍平只在缩略图预览时用，见 generate_thumbnail_from_psd）
 
     if fmt == "tif":
-        # dpi 转 pixels/cm（PIL TIF 用 cm）或直接用 dpi tuple
-        rgb.save(path, format="TIFF", dpi=(dpi, dpi), compression="deflate")
+        composited.save(path, format="TIFF", dpi=(dpi, dpi), compression="deflate")
     elif fmt == "png":
-        rgb.save(path, format="PNG", dpi=(dpi, dpi))
+        composited.save(path, format="PNG", dpi=(dpi, dpi))
     else:
         raise ValueError(f"不支持的平面格式: {fmt}")
 

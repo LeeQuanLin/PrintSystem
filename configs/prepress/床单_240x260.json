@@ -1,10 +1,10 @@
 {
   "type": "床单",
-  "size": "160x230",
-  "name": "0.9m床160*230cmF170*236cm",
+  "size": "240x260",
+  "name": "2.0m床单240x260cmF246x266cm",
   "params": {
-    "width_mm": 1720,
-    "height_mm": 2380,
+    "width_mm": 2480,
+    "height_mm": 2680,
     "bleed_mm": 0,
     "dpi": 150,
     "bitdepth": 8,
@@ -23,8 +23,8 @@
         "type": "image",
         "x_mm": 0,
         "y_mm": 0,
-        "width_mm": 1720,
-        "height_mm": 2380,
+        "width_mm": 2480,
+        "height_mm": 2680,
         "fit_mode": "cover"
       }
     ],
@@ -54,7 +54,7 @@
         "font_size_pt": 12,
         "items": [
           {
-            "text": "棉创 LQL %(图片名)s 床单 160*230cm",
+            "text": "棉创 LQL %(图片名)s 床单 240*260cm",
             "x_mm": 2,
             "y_mm": 2,
             "rotation": 0
@@ -67,7 +67,7 @@
       "formats": [
         "png"
       ],
-      "save_name": "棉创 %(图片名)s 床单 160x230cmF170x236cm"
+      "save_name": "棉创 %(图片名)s 床单 240*260cmF246*266cm"
     },
     "solid_layer": {
       "enabled": false,
