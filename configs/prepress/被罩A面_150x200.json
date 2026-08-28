@@ -42,7 +42,7 @@
         "side": "right",
         "span_mm": 1500,
         "pitch_mm": 1500,
-        "line_width_mm": 0.17,
+        "line_width_mm": 0.2,
         "alignment": "center",
         "offset_mm": 0,
         "length_mm": 10,

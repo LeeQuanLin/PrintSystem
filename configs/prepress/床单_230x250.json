@@ -1,10 +1,10 @@
 {
-  "type": "被罩A面",
-  "size": "220x240",
-  "name": "220*240cmF230*246cm",
+  "type": "床单",
+  "size": "230x250",
+  "name": "1.8m床单230x250cmF240x256cm",
   "params": {
-    "width_mm": 2320,
-    "height_mm": 2480,
+    "width_mm": 2420,
+    "height_mm": 2580,
     "bleed_mm": 0,
     "dpi": 150,
     "bitdepth": 8,
@@ -23,8 +23,8 @@
         "type": "image",
         "x_mm": 0,
         "y_mm": 0,
-        "width_mm": 2320,
-        "height_mm": 2480,
+        "width_mm": 2420,
+        "height_mm": 2580,
         "fit_mode": "cover"
       }
     ],
@@ -38,13 +38,13 @@
         "gap_length_mm": 2
       },
       "zipper_marks": {
-        "enabled": true,
-        "side": "right",
-        "span_mm": 1500,
-        "pitch_mm": 1500,
-        "line_width_mm": 0.17,
+        "enabled": false,
+        "side": "left",
+        "span_mm": null,
+        "pitch_mm": null,
+        "line_width_mm": 0.5,
         "alignment": "center",
-        "offset_mm": 0,
+        "offset_mm": 5,
         "length_mm": 10,
         "color": "black"
       },
@@ -54,32 +54,20 @@
         "font_size_pt": 12,
         "items": [
           {
-            "text": "棉创 LQL %(图片名)s 被罩A面 220*240cm",
+            "text": "棉创 LQL %(图片名)s 床单 230*250cm",
             "x_mm": 2,
             "y_mm": 2,
             "rotation": 0
           }
         ]
       },
-      "border_marks": [
-        {
-          "enabled": false,
-          "color": "black",
-          "x_mm": 0,
-          "y_mm": 0,
-          "width_mm": 2120,
-          "height_mm": 2380,
-          "width_mm_line": 0.17,
-          "dash_length_mm": 2,
-          "gap_length_mm": 2
-        }
-      ]
+      "border_marks": []
     },
     "output": {
       "formats": [
         "png"
       ],
-      "save_name": "棉创 %(图片名)s 被罩A面 220x240cmF230x246cm"
+      "save_name": "棉创 %(图片名)s 床单 230x250cmF240x256cm"
     },
     "solid_layer": {
       "enabled": false,

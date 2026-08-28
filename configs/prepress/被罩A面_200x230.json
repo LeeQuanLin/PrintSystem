@@ -39,10 +39,10 @@
       },
       "zipper_marks": {
         "enabled": true,
-        "side": "left",
+        "side": "right",
         "span_mm": 1500,
         "pitch_mm": 1500,
-        "line_width_mm": 0.25,
+        "line_width_mm": 0.2,
         "alignment": "center",
         "offset_mm": 0,
         "length_mm": 10,
@@ -55,8 +55,8 @@
         "items": [
           {
             "text": "棉创 LQL %(图片名)s 被罩A面 200*230cm",
-            "x_mm": 10,
-            "y_mm": 10,
+            "x_mm": 2,
+            "y_mm": 2,
             "rotation": 0
           }
         ]
